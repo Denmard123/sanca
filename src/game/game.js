@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let box;
     let snake = [];
     let direction = "RIGHT";
+    let nextDirection = "RIGHT"; // Untuk menghindari perubahan ganda
     let score = 0;
     let highScore = parseInt(localStorage.getItem("highScore")) || 0;
     let gameInterval;
@@ -37,7 +38,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const highScoreEl = document.getElementById("highScore");
     highScoreEl.innerText = highScore;
 
-    // Game over overlay
     const gameOverOverlay = document.getElementById("gameOverOverlay");
 
     const toastContainer = document.getElementById("toastContainer");
@@ -53,13 +53,6 @@ document.addEventListener("DOMContentLoaded", () => {
         toast.className = "bg-green-600 text-black px-4 py-2 rounded shadow-lg animate-fadeinout";
         toast.textContent = message;
         toastContainer.appendChild(toast);
-
-        // Mobile tap resume
-        toast.addEventListener("touchstart", () => {
-            if(!gameRunning){
-                startGame();
-            }
-        });
 
         setTimeout(() => toast.remove(), 3000);
     }
@@ -88,43 +81,65 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     let food = spawnFood();
 
-    // controls
+    // Controls keyboard
     document.addEventListener("keydown", e => {
         if (!gameRunning) return;
-        if (e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
-        if (e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
-        if (e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
-        if (e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
-
-        // resume game jika paused dan user menekan arrow
+        if (e.key === "ArrowLeft" && direction !== "RIGHT") nextDirection = "LEFT";
+        if (e.key === "ArrowUp" && direction !== "DOWN") nextDirection = "UP";
+        if (e.key === "ArrowRight" && direction !== "LEFT") nextDirection = "RIGHT";
+        if (e.key === "ArrowDown" && direction !== "UP") nextDirection = "DOWN";
         if(!gameRunning) startGame();
     });
 
-    let touchStartX = 0, touchStartY = 0;
-    canvas.addEventListener("touchstart", e => {
-        const t = e.touches[0];
-        touchStartX = t.clientX; touchStartY = t.clientY;
+    // Joystick
+    const joystickContainer = document.getElementById("joystickContainer");
+    const joystickInner = document.getElementById("joystickInner");
+    let joystickActive = false;
+    let startX = 0, startY = 0;
+
+    joystickInner.addEventListener("pointerdown", e => {
+        joystickActive = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        joystickInner.setPointerCapture(e.pointerId);
     });
-    canvas.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
-    canvas.addEventListener("touchend", e => {
-        if (!gameRunning) return;
-        const t = e.changedTouches[0];
-        const dx = t.clientX - touchStartX, dy = t.clientY - touchStartY;
-        if (Math.abs(dx) > Math.abs(dy)) {
-            if (dx > 0 && direction !== "LEFT") direction = "RIGHT";
-            else if (dx < 0 && direction !== "RIGHT") direction = "LEFT";
+
+    joystickInner.addEventListener("pointermove", e => {
+        if(!joystickActive) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        // Batasi jarak knob maksimal setengah container
+        const maxDist = joystickContainer.offsetWidth / 2 - joystickInner.offsetWidth / 2;
+        const distance = Math.min(Math.hypot(dx, dy), maxDist);
+        const angle = Math.atan2(dy, dx);
+
+        joystickInner.style.transform = `translate(${distance * Math.cos(angle)}px, ${distance * Math.sin(angle)}px)`;
+
+        // Tentukan arah berdasarkan 45°
+        if(Math.abs(dx) > Math.abs(dy)){
+            if(dx>0 && direction!=="LEFT") nextDirection="RIGHT";
+            else if(dx<0 && direction!=="RIGHT") nextDirection="LEFT";
         } else {
-            if (dy > 0 && direction !== "UP") direction = "DOWN";
-            else if (dy < 0 && direction !== "DOWN") direction = "UP";
+            if(dy>0 && direction!=="UP") nextDirection="DOWN";
+            else if(dy<0 && direction!=="DOWN") nextDirection="UP";
         }
 
-        // resume game jika paused dan user tap swipe
         if(!gameRunning) startGame();
+    });
+
+    joystickInner.addEventListener("pointerup", e => {
+        joystickActive = false;
+        joystickInner.style.transform = "translate(0px,0px)";
+    });
+
+    joystickInner.addEventListener("pointercancel", e => {
+        joystickActive = false;
+        joystickInner.style.transform = "translate(0px,0px)";
     });
 
     // start button
-    const startBtn = document.getElementById("startBtn");
-    startBtn?.addEventListener("click", () => {
+    document.getElementById("startBtn")?.addEventListener("click", () => {
         overlay.classList.add("hidden");
         overlayShown = true;
         gameRunning = true;
@@ -132,14 +147,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // restart button
-    const restartBtn = document.getElementById("restartBtn");
-    restartBtn.addEventListener("click", () => {
+    document.getElementById("restartBtn").addEventListener("click", () => {
         gameOverOverlay.classList.add("hidden");
         resetGame(false);
         startGame();
     });
 
-    // pause/resume otomatis saat user tinggalkan/ balik tab
     document.addEventListener("visibilitychange", () => {
         if(document.hidden){
             if(gameInterval) clearInterval(gameInterval);
@@ -149,6 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function draw() {
         if(!gameRunning) return;
+        direction = nextDirection; // update direction
 
         ctx.fillStyle = "#000";
         ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -171,7 +185,6 @@ document.addEventListener("DOMContentLoaded", () => {
             score++;
             scoreEl.innerText = score;
 
-            // update highscore
             if(score > highScore){
                 highScore = score;
                 highScoreEl.innerText = highScore;
@@ -180,14 +193,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // setiap 10 poin
             if(score % 10 === 0){
-                const randomIndex = Math.floor(Math.random()*4);
+                const randomIndex = Math.floor(Math.random()*adsLinksOriginal.length);
                 const adLink = adsLinksOriginal[randomIndex];
                 try{
-                    // buka tab langsung
-                    window.open(adLink, "_self"); // langsung buka URL di tab yang sama
+                    window.open(adLink, "_blank"); // buka tab baru
                 }catch{}
 
-                // game otomatis pause sampai user kembali -> toast muncul
                 gameRunning = false;
                 showToast(toastMessages[Math.floor(Math.random()*toastMessages.length)]);
             }
@@ -225,6 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function resetGame(showOverlay=true){
         snake=[{x:Math.floor(GRID_SIZE/2),y:Math.floor(GRID_SIZE/2)}];
         direction="RIGHT";
+        nextDirection="RIGHT";
         score=0;
         scoreEl.innerText = score;
         currentFoodIndex=0;

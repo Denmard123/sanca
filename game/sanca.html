@@ -33,9 +33,8 @@
   <!-- TOAST CONTAINER -->
   <div id="toastContainer" class="fixed top-24 right-4 flex flex-col gap-2 z-50"></div>
 
-  <!-- SCOREBOARD (responsive, tidak menutupi tombol kembali) -->
-  <div id="scoreboard" class="fixed p-3 bg-black/70 rounded-lg text-green-400 font-mono z-50 shadow-lg flex flex-col gap-1 w-40
-      top-16 right-4 md:top-4 md:right-4">
+  <!-- SCOREBOARD -->
+  <div id="scoreboard" class="fixed p-3 bg-black/70 rounded-lg text-green-400 font-mono z-50 shadow-lg flex flex-col gap-1 w-40 top-16 right-4 md:top-4 md:right-4">
     <div class="flex justify-between">
       <span class="font-bold">Skor:</span>
       <span id="score" class="font-bold">0</span>
@@ -49,8 +48,6 @@
   <!-- AREA GAME -->
   <main class="flex flex-col items-center justify-center w-full grow">  
     <div class="flex flex-col items-center justify-center w-full max-w-[500px]">
-
-      <!-- GAME CONTAINER -->
       <div id="game-container" class="relative w-full">
         <canvas id="gameCanvas" class="border-2 border-green-500 rounded-lg touch-none w-full"></canvas>
 
@@ -59,21 +56,27 @@
           <div id="instruction" class="px-6 text-sm leading-relaxed">
             <p class="mb-2">🎮 <b>Cara Main:</b></p>
             <p>- Gunakan tombol panah di keyboard untuk menggerakkan ular</p>
-            <p>- Di ponsel, geser layar (swipe) ke arah yang diinginkan</p>
+            <p>- Di ponsel, gunakan joystick di bawah layar</p>
             <p class="mt-4 text-green-500">Tekan tombol di bawah untuk mulai!</p>
           </div>
           <button id="startBtn" class="mt-6 px-6 py-2 rounded-lg bg-green-600 text-black font-bold hover:bg-green-500 transition">MULAI GAME</button>
           <div id="countdown" class="hidden text-5xl mt-4 font-extrabold text-green-500"></div>
         </div>
+
         <!-- Game Over Overlay -->
-<div id="gameOverOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-center text-green-400 rounded-2xl hidden">
-    <h2 id="gameOverText" class="text-3xl font-bold mb-4">💀 Game Over!</h2>
-    <p id="finalScore" class="mb-4">Skor kamu: 0 | High Score: 0</p>
-    <button id="restartBtn" class="px-6 py-2 rounded-lg bg-green-600 text-black font-bold hover:bg-green-500 transition flex items-center gap-2">
-      🔄 Mulai Lagi
-    </button>
-  </div>
-  
+        <div id="gameOverOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-center text-green-400 rounded-2xl hidden">
+          <h2 id="gameOverText" class="text-3xl font-bold mb-4">💀 Game Over!</h2>
+          <p id="finalScore" class="mb-4">Skor kamu: 0 | High Score: 0</p>
+          <button id="restartBtn" class="px-6 py-2 rounded-lg bg-green-600 text-black font-bold hover:bg-green-500 transition flex items-center gap-2">
+            🔄 Mulai Lagi
+          </button>
+        </div>
+
+        <!-- JOYSTICK LINGKARAN -->
+        <div id="joystickContainer" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-36 h-36 rounded-full bg-black/20 flex justify-center items-center z-50">
+          <div id="joystickInner" class="w-16 h-16 rounded-full bg-black/30 flex justify-center items-center cursor-pointer" style="touch-action:none;"></div>
+        </div>
+
       </div>
     </div>
   </main>
