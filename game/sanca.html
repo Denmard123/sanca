@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sanca Game</title>
+  <link rel="icon" href="../icon/Sss.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fadeinout {
+      0% { opacity: 0; transform: translateY(-20px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-20px); }
+    }
+    .animate-fadeinout {
+      animation: fadeinout 2s forwards;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-start bg-[radial-gradient(circle_at_center,#020202,#000)] text-green-300 font-mono p-2">
+
+  <!-- HEADER -->
+  <header class="w-full flex justify-between items-center p-4 border border-green-500/25 bg-black/40 backdrop-blur-md rounded-xl mb-3 max-w-5xl shadow-[0_0_25px_rgba(0,255,100,0.15)]">
+    <div class="flex items-center gap-2">
+      <img src="../icon/Sss.png" alt="Sanca" class="w-8 h-8" />
+      <h1 class="text-2xl font-bold tracking-wider text-green-400">Sanca</h1>
+    </div>
+    <a href="../index.html" class="text-green-300 hover:text-green-500 transition font-semibold">⬅ Kembali</a>
+  </header>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer" class="fixed top-24 right-4 flex flex-col gap-2 z-50"></div>
+
+  <!-- SCOREBOARD (responsive, tidak menutupi tombol kembali) -->
+  <div id="scoreboard" class="fixed p-3 bg-black/70 rounded-lg text-green-400 font-mono z-50 shadow-lg flex flex-col gap-1 w-40
+      top-16 right-4 md:top-4 md:right-4">
+    <div class="flex justify-between">
+      <span class="font-bold">Skor:</span>
+      <span id="score" class="font-bold">0</span>
+    </div>
+    <div class="flex justify-between">
+      <span class="font-semibold text-sm">High Score:</span>
+      <span id="highScore" class="font-semibold text-sm">0</span>
+    </div>
+  </div>
+
+  <!-- AREA GAME -->
+  <main class="flex flex-col items-center justify-center w-full grow">  
+    <div class="flex flex-col items-center justify-center w-full max-w-[500px]">
+
+      <!-- GAME CONTAINER -->
+      <div id="game-container" class="relative w-full">
+        <canvas id="gameCanvas" class="border-2 border-green-500 rounded-lg touch-none w-full"></canvas>
+
+        <!-- Overlay Instruksi -->
+        <div id="overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-center text-green-400 rounded-2xl">
+          <div id="instruction" class="px-6 text-sm leading-relaxed">
+            <p class="mb-2">🎮 <b>Cara Main:</b></p>
+            <p>- Gunakan tombol panah di keyboard untuk menggerakkan ular</p>
+            <p>- Di ponsel, geser layar (swipe) ke arah yang diinginkan</p>
+            <p class="mt-4 text-green-500">Tekan tombol di bawah untuk mulai!</p>
+          </div>
+          <button id="startBtn" class="mt-6 px-6 py-2 rounded-lg bg-green-600 text-black font-bold hover:bg-green-500 transition">MULAI GAME</button>
+          <div id="countdown" class="hidden text-5xl mt-4 font-extrabold text-green-500"></div>
+        </div>
+        <!-- Game Over Overlay -->
+<div id="gameOverOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-center text-green-400 rounded-2xl hidden">
+    <h2 id="gameOverText" class="text-3xl font-bold mb-4">💀 Game Over!</h2>
+    <p id="finalScore" class="mb-4">Skor kamu: 0 | High Score: 0</p>
+    <button id="restartBtn" class="px-6 py-2 rounded-lg bg-green-600 text-black font-bold hover:bg-green-500 transition flex items-center gap-2">
+      🔄 Mulai Lagi
+    </button>
+  </div>
+  
+      </div>
+    </div>
+  </main>
+
+  <footer class="py-3 text-center text-xs text-green-700/60">© 2025 Sanca Project</footer>
+
+  <!-- Game JS -->
+  <script src="../src/game/game.js"></script>
+</body>
+</html>
