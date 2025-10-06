@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Favicon (ikon naga) -->
+<link rel="icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f409.svg" type="image/svg+xml">
+
+<!-- Judul tab -->
+<title>Sanca - Game Ular Legendaris Versi Modern</title>
+
+  <meta name="description" content="Mainkan Sss Game, game ular klasik dengan tampilan modern! Tantang dirimu, kumpulkan skor tertinggi, dan jadilah legenda.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    #heroCanvas { pointer-events: none; }
+
+    .aside-hidden {
+      transform: translateX(100%);
+      transition: transform 0.3s ease-in-out;
+    }
+    .aside-visible {
+      transform: translateX(0);
+      transition: transform 0.3s ease-in-out;
+    }
+  </style>
+
+<style>
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .animate-gradient {
+      animation: gradientMove 4s ease infinite;
+    }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white scroll-smooth">
+
+<!-- ===== HEADER (LIGHT PERFORMANCE) ===== -->
+<header class="fixed top-0 left-0 w-full flex justify-between items-center 
+               px-6 py-3 bg-black/60 border-b border-green-400/30 
+               shadow-md z-50 transition-all duration-300">
+
+  <!-- ===== LOGO HEADER ===== -->
+  <a href="./index.html" class="flex items-center gap-3 group select-none">
+    <!-- Ikon naga -->
+    <i class="fa-solid fa-dragon text-green-400 text-3xl drop-shadow-md 
+              group-hover:drop-shadow-[0_0_10px_rgba(34,197,94,0.7)] transition-all duration-200"></i>
+
+    <!-- Teks Logo -->
+    <h1 class="text-2xl font-extrabold tracking-wide text-white 
+               group-hover:text-green-400 transition-all duration-300">
+      SAN<span class="text-green-400">CA</span>
+    </h1>
+  </a>
+
+  <!-- ===== Desktop Nav ===== -->
+  <nav class="hidden md:flex gap-6 text-sm font-medium text-gray-200">
+    <a href="#" class="hover:text-green-400 transition-colors">Dashboard</a>
+    <a href="#" class="hover:text-green-400 transition-colors">Ranking</a>
+    <a href="#" class="hover:text-green-400 transition-colors">Tentang</a>
+  </nav>
+
+  <!-- ===== Right Controls ===== -->
+  <div class="flex items-center gap-3">
+    <!-- Tombol Profil -->
+    <button id="toggleAside"
+      class="px-4 py-2 rounded-md text-sm font-semibold text-white 
+             bg-green-600 hover:bg-green-500 transition-all duration-200">
+      👤 Profil
+    </button>
+
+    <!-- Tombol Mobile Menu -->
+    <button id="mobileMenuBtn"
+      class="md:hidden flex items-center justify-center w-10 h-10 rounded-md 
+             bg-green-600 hover:bg-green-500 text-white text-lg transition-all duration-200">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+  </div>
+
+  <!-- ===== Mobile Dropdown ===== -->
+  <nav id="mobileMenu"
+    class="absolute right-4 top-full mt-2 w-44 bg-gray-900 rounded-md shadow-lg 
+           border border-green-500/30 opacity-0 scale-95 transform transition-all duration-200 
+           origin-top md:hidden z-30 pointer-events-none">
+    <a href="#" class="block px-4 py-2 hover:bg-green-600/20 hover:text-green-400 transition">🏠 Dashboard</a>
+    <a href="#" class="block px-4 py-2 hover:bg-green-600/20 hover:text-green-400 transition">🏆 Ranking</a>
+    <a href="#" class="block px-4 py-2 hover:bg-green-600/20 hover:text-green-400 transition">ℹ️ Tentang</a>
+  </nav>
+</header>
+
+
+  <!-- ===== ASIDE PROFIL ===== -->
+  <aside id="profileAside" class="fixed top-0 right-0 w-80 h-full bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 
+        shadow-[0_0_20px_rgba(0,255,100,0.3)] p-6 aside-hidden z-50 border-l border-green-500">
+    <button id="closeAsideBtn" class="absolute top-2 right-3 text-3xl text-gray-300 hover:text-red-500">×</button>
+
+    <div class="text-center mb-6">
+      <div class="relative inline-block">
+        <div class="absolute inset-0 rounded-full blur-md bg-green-500 opacity-30 animate-pulse"></div>
+        <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="relative w-20 h-20 rounded-full border-4 border-green-400 shadow-lg">
+      </div>
+      <h3 class="text-xl font-bold mt-3">Den Mardiyana</h3>
+      <p class="text-green-400 text-sm">Pangkat: <span class="text-white">Elite Snake</span></p>
+    </div>
+
+    <div class="mb-6">
+      <p class="text-gray-300 text-sm mb-2">XP Level 12</p>
+      <div class="w-full bg-gray-700 h-3 rounded-full">
+        <div class="bg-gradient-to-r from-green-400 to-lime-500 h-full w-3/4 animate-pulse"></div>
+      </div>
+    </div>
+
+    <div class="space-y-3">
+      <button class="w-full bg-green-500 text-gray-900 font-semibold py-2 rounded-xl hover:bg-green-400 transition">
+        <i class="fa-solid fa-trophy mr-2"></i>Lihat Ranking
+      </button>
+      <button class="w-full bg-gray-700 text-white py-2 rounded-xl hover:bg-gray-600 transition">
+        <i class="fa-solid fa-gear mr-2"></i>Pengaturan
+      </button>
+    </div>
+
+    <p class="absolute bottom-4 w-full text-center text-gray-500 text-xs">
+      © 2025 <span class="text-green-400 font-semibold">Sss Game</span>. All Rights Reserved.
+    </p>
+  </aside>
+
+  <!-- Spacer agar konten tidak tertutup header -->
+<div class="h-1 md:h-24"></div>
+
+<!-- ===== HERO SECTION ===== -->
+<section id="hero" 
+  class="pt-32 md:pt-40 relative flex flex-col md:flex-row items-center justify-between 
+         w-[90%] max-w-[1100px] mx-auto my-20 rounded-3xl overflow-hidden 
+         shadow-[0_0_40px_rgba(0,255,0,0.25)] border border-green-500/30 
+         backdrop-blur-md">
+
+  <!-- Background image -->
+  <div class="absolute inset-0 bg-[url('./icon/Sss.png')] 
+              bg-cover bg-center brightness-[0.25] contrast-125 saturate-150 blur-[2px]"></div>
+
+  <!-- Overlay gradient -->
+  <div class="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-transparent"></div>
+
+  <!-- Canvas animasi snake -->
+  <canvas id="heroCanvas" class="absolute inset-0 w-full h-full opacity-15 pointer-events-none"></canvas>
+
+  <!-- Konten teks -->
+  <div class="relative z-10 w-full md:w-1/2 text-center md:text-left px-8 py-10">
+    <h2 class="text-5xl md:text-6xl font-extrabold mb-4 
+    bg-clip-text text-transparent bg-gradient-to-r 
+    from-green-300 via-yellow-200 to-lime-400 
+    animate-gradient bg-[length:200%_auto]
+    drop-shadow-[0_0_10px_rgba(34,197,94,0.6)] 
+    [text-shadow:_0_0_10px_rgba(0,255,100,0.5),_0_0_20px_rgba(0,255,100,0.3)]">
+Welcome to <span class="text-white drop-shadow-[0_0_10px_rgba(0,255,0,0.8)]">Sss Sanca</span>
+</h2>
+
+
+    <p class="text-gray-300 text-lg md:text-xl leading-relaxed mb-6">
+      Rasakan sensasi <span class="text-green-400 font-semibold">Game</span> klasik 
+      dalam versi modern penuh warna dan efek neon futuristik.
+    </p>
+
+    <a href="#play"
+       class="inline-block mt-3 px-6 py-3 text-lg font-bold 
+              text-black bg-green-400 hover:bg-green-500 
+              rounded-full shadow-[0_0_20px_rgba(0,255,0,0.5)] 
+              hover:shadow-[0_0_30px_rgba(0,255,0,0.8)] 
+              transition-all duration-300 ease-out">
+      Mulai Bermain
+    </a>
+  </div>
+
+  <!-- Visual kanan (efek atau ilustrasi) -->
+  <div class="relative z-10 hidden md:flex justify-center items-center w-1/2">
+    <div class="w-64 h-64 rounded-full bg-gradient-to-tr from-green-400 via-yellow-300 to-transparent 
+                opacity-70 blur-2xl animate-pulse"></div>
+    <img src="./icon/Sss.png" alt="Snake" 
+         class="absolute w-48 opacity-90 drop-shadow-[0_0_25px_rgba(255,255,0,0.5)]">
+  </div>
+</section>
+
+
+  <!-- ===== LEVEL SECTION ===== -->
+  <main>
+    <section id="levels" class="max-w-6xl mx-auto my-12 px-4">
+      <h2 class="text-3xl md:text-4xl font-extrabold text-center mb-8">
+        Pilih Levelmu
+      </h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <article class="bg-gradient-to-tr from-green-500 to-green-300 rounded-xl p-6 shadow-lg hover:scale-105 transition">
+          <h3 class="text-xl font-bold mb-2">Level 1: Pemula</h3>
+          <p class="mb-4 text-sm text-gray-100">Belajar dasar permainan snake. Cocok buat pemula!</p>
+          <button class="w-full py-2 rounded bg-white text-green-600 font-semibold hover:bg-green-600 hover:text-white transition">Mulai</button>
+        </article>
+
+        <article class="bg-gradient-to-tr from-yellow-400 to-yellow-200 rounded-xl p-6 shadow-lg hover:scale-105 transition">
+          <h3 class="text-xl font-bold mb-2 text-gray-900">Level 2: Menengah</h3>
+          <p class="mb-4 text-sm text-gray-800">Uji kemampuanmu dengan kecepatan sedang dan lebih banyak rintangan.</p>
+          <button class="w-full py-2 rounded bg-gray-900 text-yellow-400 font-semibold hover:bg-yellow-400 hover:text-gray-900 transition">Mulai</button>
+        </article>
+
+        <article class="bg-gradient-to-tr from-red-500 to-pink-400 rounded-xl p-6 shadow-lg hover:scale-105 transition">
+          <h3 class="text-xl font-bold mb-2">Level 3: Ahli</h3>
+          <p class="mb-4 text-sm text-gray-100">Kecepatan tinggi dan tantangan ekstrem untuk pemain sejati.</p>
+          <button class="w-full py-2 rounded bg-white text-red-500 font-semibold hover:bg-red-500 hover:text-white transition">Mulai</button>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="border-t border-gray-700 bg-gray-900 text-gray-300 mt-12">
+    <div class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+
+      <div>
+        <h4 class="text-white text-lg font-bold mb-4">Tentang Sss Game</h4>
+        <p class="text-sm">Sss Game adalah permainan ular klasik dengan sentuhan modern dan efek neon. Bersainglah dengan teman dan jadilah legenda ular!</p>
+      </div>
+
+      <div>
+        <h4 class="text-white text-lg font-bold mb-4">Link Cepat</h4>
+        <ul class="space-y-2 text-sm">
+          <li><a href="#" class="hover:text-green-400">Dashboard</a></li>
+          <li><a href="#" class="hover:text-green-400">Ranking</a></li>
+          <li><a href="#" class="hover:text-green-400">Level</a></li>
+          <li><a href="#" class="hover:text-green-400">Tentang</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-white text-lg font-bold mb-4">Sosial Media</h4>
+        <div class="flex space-x-5 text-2xl">
+          <a href="#" class="hover:text-blue-500"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" class="hover:text-pink-500"><i class="fab fa-instagram"></i></a>
+          <a href="#" class="hover:text-red-600"><i class="fab fa-youtube"></i></a>
+          <a href="#" class="hover:text-green-500"><i class="fab fa-tiktok"></i></a>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="text-white text-lg font-bold mb-4">Newsletter</h4>
+        <p class="text-sm mb-3">Dapatkan update level dan event baru!</p>
+        <form class="flex flex-col space-y-2">
+          <input type="email" placeholder="Emailmu" class="p-2 rounded text-gray-900 focus:outline-none">
+          <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded font-semibold transition">Subscribe</button>
+        </form>
+      </div>
+
+    </div>
+    <div class="text-center py-4 text-sm text-gray-500 border-t border-gray-800">&copy; 2025 Sss Game. All rights reserved.</div>
+  </footer>
+
+  <!-- Script -->
+  <script src="https://unpkg.com/three@0.148.0/build/three.min.js"></script>
+  <script src="./src/aside.js"></script>
+  <script src="./src/script.js"></script>
+</body>
+</html>
