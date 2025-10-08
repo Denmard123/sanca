@@ -1,361 +1,663 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Favicon (ikon naga) -->
-<link rel="icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f409.svg" type="image/svg+xml">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sanca — Neon Snake Adventure</title>
+  
+  <!-- Favicon Neon -->
+  <link rel="icon" type="image/png" href="./icon/Sss.png">
 
-<!-- Judul tab -->
-<title>Sanca - Game Ular Legendaris Versi Modern</title>
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-  <meta name="description" content="Mainkan Sss Game, game ular klasik dengan tampilan modern! Tantang dirimu, kumpulkan skor tertinggi, dan jadilah legenda.">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
-    #heroCanvas { pointer-events: none; }
+    <!-- Three.js -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 
-    .aside-hidden {
-      transform: translateX(100%);
-      transition: transform 0.3s ease-in-out;
-    }
-    .aside-visible {
-      transform: translateX(0);
-      transition: transform 0.3s ease-in-out;
-    }
-  </style>
+    <!-- Font Awesome -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"
+      defer
+    ></script>
 
+<!-- ✅ STYLE FIXED: tanpa @apply, langsung pakai Tailwind-equivalent -->
 <style>
-    @keyframes gradientMove {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+  /* 🌈 Animasi Ringan & Responsif */
+  @keyframes pulseGlow {
+    0%, 100% { opacity: 0.3; transform: scale(1); filter: brightness(1); }
+    50% { opacity: 0.7; transform: scale(1.05); filter: brightness(1.2); }
+  }
+
+  @keyframes scrollGrid {
+    from { transform: translate(0, 0); }
+    to { transform: translate(-60px, -60px); }
+  }
+
+  @keyframes pulseLight {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.03); }
+  }
+
+  @keyframes moveGrid {
+    from { background-position: 0 0; }
+    to { background-position: 80px 80px; }
+  }
+
+  :root {
+    --neon-green: #00ff99;
+    --neon-cyan: #00fff2;
+    --neon-shadow-green: 0 0 20px #00ff99;
+    --neon-shadow-cyan: 0 0 20px #00fff2;
+  }
+
+  .text-neon-green { color: var(--neon-green); }
+  .text-neon-cyan { color: var(--neon-cyan); }
+  .bg-neon-green { background-color: var(--neon-green); }
+  .bg-neon-cyan { background-color: var(--neon-cyan); }
+
+  .neon-hover {
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  .neon-hover:hover {
+    transform: scale(1.03);
+    filter: brightness(1.3);
+  }
+  .neon-hover:active {
+    transform: scale(0.97);
+    filter: brightness(0.9);
+  }
+
+  .neon-shadow-green { box-shadow: var(--neon-shadow-green); }
+  .neon-shadow-cyan { box-shadow: var(--neon-shadow-cyan); }
+
+  #snakeCanvas {
+    width: 100%;
+    max-width: 500px;
+    height: 220px;
+    border-radius: 1rem;
+    transition: transform 0.3s ease, box-shadow 0.4s ease;
+  }
+  #snakeCanvas:hover {
+    transform: scale(1.01);
+    box-shadow: 0 0 25px rgba(0, 255, 242, 0.4);
+  }
+
+  @media (min-width: 640px) {
+    #snakeCanvas { height: 280px; }
+  }
+
+  .neon-bg {
+    position: relative;
+    overflow: hidden;
+  }
+  .neon-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(0, 255, 255, 0.1), transparent 70%);
+    animation: pulseLight 10s ease-in-out infinite;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .neon-grid {
+    background: linear-gradient(45deg,
+      rgba(0, 255, 200, 0.12) 25%, transparent 25%, transparent 50%,
+      rgba(0, 255, 200, 0.12) 50%, rgba(0, 255, 200, 0.12) 75%, transparent 75%, transparent);
+    background-size: 50px 50px;
+    animation: moveGrid 18s linear infinite;
+    opacity: 0.2;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
     }
-    .animate-gradient {
-      animation: gradientMove 4s ease infinite;
-    }
-    </style>
-</head>
+  }
 
-<body class="bg-gray-900 text-white scroll-smooth">
+  button, a, canvas {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-<!-- ===== HEADER (LIGHT PERFORMANCE) ===== -->
-<header class="fixed top-0 left-0 w-full flex justify-between items-center 
-               px-6 py-3 bg-black/60 border-b border-green-400/30 
-               shadow-md z-50 transition-all duration-300">
+  @media (max-width: 480px) {
+    h2, h3 { font-size: 1.25rem !important; }
+    p, li, span { font-size: 0.85rem !important; }
+    a#btnPlay { padding: 0.6rem 1.5rem; font-size: 0.85rem; }
+  }
 
-  <!-- ===== LOGO HEADER ===== -->
-  <a href="./index.html" class="flex items-center gap-3 group select-none">
-    <!-- Ikon naga -->
-    <i class="fa-solid fa-dragon text-green-400 text-3xl drop-shadow-md 
-              group-hover:drop-shadow-[0_0_10px_rgba(34,197,94,0.7)] transition-all duration-200"></i>
+  /* ✅ FIX: Ganti @apply dengan CSS langsung */
+  .nav-link {
+    color: #d1d5db;
+    transition: all 0.2s ease;
+  }
+  .nav-link:hover {
+    color: var(--neon-cyan);
+    filter: drop-shadow(0 0 6px #00fff2);
+  }
 
-    <!-- Teks Logo -->
-    <h1 class="text-2xl font-extrabold tracking-wide text-white 
-               group-hover:text-green-400 transition-all duration-300">
-      SAN<span class="text-green-400">CA</span>
+  .dropdown-item {
+    display: block;
+    padding: 0.5rem 1rem;
+    color: #d1d5db;
+    transition: all 0.2s ease;
+  }
+  .dropdown-item:hover {
+    color: var(--neon-cyan);
+    background-color: rgba(0, 255, 242, 0.1);
+  }
+
+  .mobile-link {
+    color: #d1d5db;
+    transition: all 0.2s ease;
+  }
+  .mobile-link:hover {
+    color: var(--neon-cyan);
+  }
+
+  .mobile-dropdown-item {
+    color: #d1d5db;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+  }
+  .mobile-dropdown-item:hover {
+    color: var(--neon-green);
+    background-color: rgba(0, 255, 153, 0.1);
+  }
+</style>
+
+
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              neon: {
+                green: "#00ff88",
+                cyan: "#00fff0",
+              },
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+
+  <body id="bodyPage" class="bg-[#020617] text-white min-h-screen font-sans">
+<!-- ========== HEADER NEON RESPONSIF ========== -->
+<header
+  id="header"
+  class="neon fixed top-0 left-0 w-full flex justify-between items-center px-6 py-3
+         bg-gradient-to-r from-black/80 via-gray-900/70 to-black/80
+         border-b border-cyan-400/30 backdrop-blur-xl z-50
+         shadow-[0_0_25px_rgba(0,255,242,0.3)] transition-all duration-300"
+>
+  <!-- Brand / Logo -->
+  <a href="index.html" id="brand" class="flex items-center gap-3 group select-none">
+    <i
+      class="fa-solid fa-dragon text-neon-green text-3xl drop-shadow-[0_0_10px_#00ff88]
+             group-hover:scale-110 group-hover:text-neon-cyan transition-transform duration-300"
+    ></i>
+    <h1
+      class="text-2xl font-extrabold tracking-wide text-white
+             group-hover:text-neon-green transition-colors duration-300"
+    >
+      SAN<span class="text-neon-cyan">CA</span>
     </h1>
   </a>
 
-<!-- ===== Desktop Nav (Re-Design Neon Style) ===== -->
-<nav class="hidden md:flex gap-8 text-sm font-semibold tracking-wide">
-  <a href="#"
-     class="relative text-gray-300 hover:text-green-400 transition-colors duration-300 
-            after:content-[''] after:absolute after:left-0 after:-bottom-1 
-            after:w-0 after:h-[2px] after:bg-green-400 after:rounded-full 
-            hover:after:w-full after:transition-all after:duration-300 
-            hover:drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]">
-    Dashboard
-  </a>
-  <a href="#"
-     class="relative text-gray-300 hover:text-green-400 transition-colors duration-300 
-            after:content-[''] after:absolute after:left-0 after:-bottom-1 
-            after:w-0 after:h-[2px] after:bg-green-400 after:rounded-full 
-            hover:after:w-full after:transition-all after:duration-300 
-            hover:drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]">
-    Ranking
-  </a>
-  <a href="#"
-     class="relative text-gray-300 hover:text-green-400 transition-colors duration-300 
-            after:content-[''] after:absolute after:left-0 after:-bottom-1 
-            after:w-0 after:h-[2px] after:bg-green-400 after:rounded-full 
-            hover:after:w-full after:transition-all after:duration-300 
-            hover:drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]">
-    Tentang
-  </a>
-</nav>
+  <!-- Navigation (Desktop) -->
+  <nav id="mainNav" class="hidden md:flex items-center gap-8 text-sm font-semibold tracking-wide">
+    <a href="index.html" class="nav-link">Dashboard</a>
+    <a href="panduan.html" class="nav-link">Panduan</a>
+    <a href="tentang.html" class="nav-link">Tentang</a>
 
+    <!-- Dropdown Neon -->
+    <div class="relative group">
+      <button
+        id="navDropdownBtn"
+        class="flex items-center gap-1 text-gray-300 hover:text-neon-cyan transition-all duration-200"
+      >
+        Lab
+        <i class="fa-solid fa-chevron-down text-xs group-hover:rotate-180 transition-transform duration-200"></i>
+      </button>
 
-  <!-- ===== Right Controls ===== -->
-  <div class="flex items-center gap-3">
-    <!-- Tombol Profil -->
-    <button id="toggleAside"
-      class="px-4 py-2 rounded-md text-sm font-semibold text-white 
-             bg-green-600 hover:bg-green-500 transition-all duration-200">
-      👤 Profil
-    </button>
+      <!-- Isi Dropdown -->
+      <div
+        id="navDropdown"
+        class="absolute top-full right-0 mt-2 hidden w-44 bg-black/90 border border-neon-cyan/30
+               rounded-xl shadow-[0_0_15px_#00fff280] backdrop-blur-md py-2 text-sm font-medium"
+      >
+        <a href="./public/eksperimen.html" class="dropdown-item"><i class="fa-solid fa-flask"></i> Eksperimen</a>
+        <a href="./public/mode.html" class="dropdown-item"><i class="fa-solid fa-lightbulb"></i> Mode Neon</a>
+        <a href="./public/dev.html" class="dropdown-item"><i class="fa-solid fa-code"></i> Dev Tools</a>
+      </div>
+    </div>
+  </nav>
 
-    <!-- Tombol Mobile Menu -->
-    <button id="mobileMenuBtn"
-      class="md:hidden flex items-center justify-center w-10 h-10 rounded-md 
-             bg-green-600 hover:bg-green-500 text-white text-lg transition-all duration-200">
-      <i class="fa-solid fa-bars"></i>
-    </button>
-  </div>
+  <!-- Tombol Pengaturan -->
+  <button
+    id="btnSettings"
+    class="px-4 py-2 rounded-md text-sm font-semibold text-black
+           bg-gradient-to-r from-neon-green to-neon-cyan
+           hover:from-neon-cyan hover:to-neon-green
+           shadow-[0_0_15px_#00fff2] hover:shadow-[0_0_25px_#00fff2]
+           transition-all duration-300 flex items-center gap-2"
+  >
+    <i class="fa-solid fa-gear text-black"></i>
+    <span class="hidden sm:inline">Pengaturan</span>
+  </button>
 
-<!-- ===== Mobile Dropdown (Neon Modern Style) ===== -->
-<nav id="mobileMenu"
-  class="absolute right-4 top-full mt-3 w-48 rounded-xl border border-green-400/30 
-         bg-gradient-to-b from-black/80 via-gray-900/90 to-black/80 
-         backdrop-blur-md shadow-[0_0_25px_rgba(0,255,100,0.25)] 
-         opacity-0 scale-95 transform transition-all duration-300 ease-out
-         origin-top md:hidden z-30 pointer-events-none">
+  <!-- Toggle Menu (Mobile) -->
+  <button
+    id="menuToggle"
+    class="md:hidden text-neon-cyan text-2xl p-2 hover:text-neon-green transition-all duration-200"
+    aria-label="Buka Menu"
+  >
+    <i class="fa-solid fa-bars"></i>
+  </button>
 
-  <a href="#"
-     class="block px-5 py-3 text-sm font-semibold text-gray-200 
-            hover:text-green-400 hover:bg-green-500/10 
-            transition-all duration-300 relative group">
-    🏠 Dashboard
-    <span class="absolute left-0 bottom-0 w-0 h-[2px] bg-green-400 rounded-full transition-all duration-300 group-hover:w-full"></span>
-  </a>
+  <!-- Menu Mobile -->
+  <nav
+    id="mobileNav"
+    class="absolute top-full left-0 w-full bg-black/90 backdrop-blur-lg
+           border-t border-cyan-400/30 flex-col gap-4 py-4 px-6 hidden md:hidden
+           animate-[fadeIn_0.3s_ease-in-out]"
+  >
+    <a href="index.html" class="mobile-link">Dashboard</a>
+    <a href="panduan.html" class="mobile-link">Panduan</a>
+    <a href="tentang.html" class="mobile-link">Tentang</a>
 
-  <a href="#"
-     class="block px-5 py-3 text-sm font-semibold text-gray-200 
-            hover:text-green-400 hover:bg-green-500/10 
-            transition-all duration-300 relative group">
-    🏆 Ranking
-    <span class="absolute left-0 bottom-0 w-0 h-[2px] bg-green-400 rounded-full transition-all duration-300 group-hover:w-full"></span>
-  </a>
-
-  <a href="#"
-     class="block px-5 py-3 text-sm font-semibold text-gray-200 
-            hover:text-green-400 hover:bg-green-500/10 
-            transition-all duration-300 relative group">
-    ℹ️ Tentang
-    <span class="absolute left-0 bottom-0 w-0 h-[2px] bg-green-400 rounded-full transition-all duration-300 group-hover:w-full"></span>
-  </a>
-</nav>
-
+    <!-- Dropdown Mobile -->
+    <div class="mt-2">
+      <button
+        id="mobileDropdownBtn"
+        class="flex items-center gap-2 text-gray-300 hover:text-neon-cyan transition-all duration-200 w-full"
+      >
+        Lab
+        <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
+      </button>
+      <div
+        id="mobileDropdown"
+        class="hidden flex-col mt-2 bg-black/70 border border-neon-cyan/30 rounded-xl p-2 space-y-1"
+      >
+        <a href="./public/eksperimen.html" class="mobile-dropdown-item"><i class="fa-solid fa-flask"></i> Eksperimen</a>
+        <a href="./public/mode.html" class="mobile-dropdown-item"><i class="fa-solid fa-lightbulb"></i> Mode Neon</a>
+        <a href="./public/dev.html" class="mobile-dropdown-item"><i class="fa-solid fa-code"></i> Dev Tools</a>
+      </div>
+    </div>
+  </nav>
 </header>
 
 
-  <!-- ===== ASIDE PROFIL ===== -->
-  <aside id="profileAside" class="fixed top-0 right-0 w-80 h-full bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 
-        shadow-[0_0_20px_rgba(0,255,100,0.3)] p-6 aside-hidden z-50 border-l border-green-500">
-    <button id="closeAsideBtn" class="absolute top-2 right-3 text-3xl text-gray-300 hover:text-red-500">×</button>
 
-    <div class="text-center mb-6">
-      <div class="relative inline-block">
-        <div class="absolute inset-0 rounded-full blur-md bg-green-500 opacity-30 animate-pulse"></div>
-        <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="relative w-20 h-20 rounded-full border-4 border-green-400 shadow-lg">
-      </div>
-      <h3 class="text-xl font-bold mt-3">Den Mardiyana</h3>
-      <p class="text-green-400 text-sm">Pangkat: <span class="text-white">Elite Snake</span></p>
+    <!-- SPACER -->
+    <section class="h-20"></section>
+
+  <!-- ========== MAIN ========== -->
+<main id="mainContent" class="neon max-w-6xl mx-auto px-4 pt-16 pb-20 space-y-10 select-none">
+
+  <!-- ========== SECTION GAME ========== -->
+  <section
+    id="gameCard"
+    class="relative rounded-3xl border border-neon-cyan/40 bg-gradient-to-br from-black/80 via-gray-900/60 to-cyan-950/30 backdrop-blur-xl p-6 sm:p-8 flex flex-col items-center gap-5 shadow-[0_0_35px_#00fff260] transition-transform duration-300 hover:scale-[1.01] active:scale-[0.99]"
+  >
+    <!-- Efek animasi cahaya ringan -->
+    <div class="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none opacity-30">
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(0,255,255,0.15),transparent_70%)] animate-[pulseLight_10s_ease_infinite]"></div>
     </div>
 
-    <div class="mb-6">
-      <p class="text-gray-300 text-sm mb-2">XP Level 12</p>
-      <div class="w-full bg-gray-700 h-3 rounded-full">
-        <div class="bg-gradient-to-r from-green-400 to-lime-500 h-full w-3/4 animate-pulse"></div>
-      </div>
-    </div>
-
-    <div class="space-y-3">
-      <button class="w-full bg-green-500 text-gray-900 font-semibold py-2 rounded-xl hover:bg-green-400 transition">
-        <i class="fa-solid fa-trophy mr-2"></i>Lihat Ranking
-      </button>
-      <button class="w-full bg-gray-700 text-white py-2 rounded-xl hover:bg-gray-600 transition">
-        <i class="fa-solid fa-gear mr-2"></i>Pengaturan
-      </button>
-    </div>
-
-    <p class="absolute bottom-4 w-full text-center text-gray-500 text-xs">
-      © 2025 <span class="text-green-400 font-semibold">Sss Game</span>. All Rights Reserved.
-    </p>
-  </aside>
-
-  <!-- Spacer agar konten tidak tertutup header -->
-<div class="h-1 md:h-24"></div>
-
-<!-- ===== HERO SECTION ===== -->
-<section id="hero" 
-  class="pt-32 md:pt-40 relative flex flex-col md:flex-row items-center justify-between 
-         w-[90%] max-w-[1100px] mx-auto my-20 rounded-3xl overflow-hidden 
-         shadow-[0_0_40px_rgba(0,255,0,0.25)] border border-green-500/30 
-         backdrop-blur-md">
-
-  <!-- Background image -->
-  <div class="absolute inset-0 bg-[url('./icon/Sss.png')] 
-              bg-cover bg-center brightness-[0.25] contrast-125 saturate-150 blur-[2px]"></div>
-
-  <!-- Overlay gradient -->
-  <div class="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-transparent"></div>
-
-  <!-- Canvas animasi snake -->
-  <canvas id="heroCanvas" class="absolute inset-0 w-full h-full opacity-15 pointer-events-none"></canvas>
-
-  <!-- Konten teks -->
-  <div class="relative z-10 w-full md:w-1/2 text-center md:text-left px-8 py-10">
-    <h2 class="text-5xl md:text-6xl font-extrabold mb-4 
-    bg-clip-text text-transparent bg-gradient-to-r 
-    from-green-300 via-yellow-200 to-lime-400 
-    animate-gradient bg-[length:200%_auto]
-    drop-shadow-[0_0_10px_rgba(34,197,94,0.6)] 
-    [text-shadow:_0_0_10px_rgba(0,255,100,0.5),_0_0_20px_rgba(0,255,100,0.3)]">
-Welcome to <span class="text-white drop-shadow-[0_0_10px_rgba(0,255,0,0.8)]">Sss Sanca</span>
-</h2>
-
-
-    <p class="text-gray-300 text-lg md:text-xl leading-relaxed mb-6">
-      Rasakan sensasi <span class="text-green-400 font-semibold">Game</span> klasik 
-      dalam versi modern penuh warna dan efek neon futuristik.
-    </p>
-
-    <a href="./game/sanca.html"
-       class="inline-block mt-3 px-6 py-3 text-lg font-bold 
-              text-black bg-green-400 hover:bg-green-500 
-              rounded-full shadow-[0_0_20px_rgba(0,255,0,0.5)] 
-              hover:shadow-[0_0_30px_rgba(0,255,0,0.8)] 
-              transition-all duration-300 ease-out">
-      Mulai Bermain
-    </a>
-  </div>
-
-  <!-- Visual kanan (efek atau ilustrasi) -->
-  <div class="relative z-10 hidden md:flex justify-center items-center w-1/2">
-    <div class="w-64 h-64 rounded-full bg-gradient-to-tr from-green-400 via-yellow-300 to-transparent 
-                opacity-70 blur-2xl animate-pulse"></div>
-    <img src="./icon/Sss.png" alt="Snake" 
-         class="absolute w-48 opacity-90 drop-shadow-[0_0_25px_rgba(255,255,0,0.5)]">
-  </div>
-</section>
-
-  <main>
-   <!-- ===== LEVEL SECTION (Revised Neon Style) ===== -->
-<section id="levels" class="max-w-6xl mx-auto my-20 px-4 text-center">
-  <h2 class="text-4xl md:text-5xl font-extrabold mb-10
-             bg-clip-text text-transparent bg-gradient-to-r 
-             from-green-400 via-lime-300 to-green-500 
-             animate-gradient bg-[length:200%_auto]">
-    🐍 Pilih Levelmu
-  </h2>
-
-  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-    <!-- LEVEL 1 -->
-    <article
-      class="relative group bg-gradient-to-br from-green-800/40 to-black/50 
-             border border-green-400/30 rounded-2xl p-6 backdrop-blur-sm
-             shadow-[0_0_15px_rgba(0,255,100,0.2)] hover:shadow-[0_0_25px_rgba(0,255,100,0.5)]
-             transition-all duration-300 hover:scale-105">
-      <div
-        class="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 
-               bg-gradient-to-br from-green-500/20 to-transparent blur-xl transition-all duration-500">
-      </div>
-      <h3 class="text-2xl font-bold mb-2 text-green-300 drop-shadow-md">Level 1: Pemula</h3>
-      <p class="mb-5 text-sm text-gray-300">
-        Belajar dasar permainan snake. Cocok buat pemula!
+    <header class="relative text-center">
+      <h2 class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-neon-green via-neon-cyan to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_#00fff2]">
+        Sss Sanca
+      </h2>
+      <p class="text-gray-400 text-xs sm:text-sm mt-2 italic tracking-wide">
+        Dunia neon menunggumu — kendalikan ular dan kejar skor tertinggi.
       </p>
-      <button
-        class="w-full py-2.5 rounded-lg bg-green-500 text-gray-900 font-bold 
-               hover:bg-green-400 hover:shadow-[0_0_20px_rgba(0,255,100,0.8)]
-               transition-all duration-200">
-        Mulai
-      </button>
+    </header>
+
+    <figure class="relative w-full flex flex-col items-center mt-3 sm:mt-4">
+      <!-- Canvas Game -->
+      <canvas
+        id="snakeCanvas"
+        class="w-full max-w-[500px] h-[220px] sm:h-[280px] rounded-2xl border border-neon-cyan/30 bg-gradient-to-b from-gray-900/80 to-black/80 shadow-[0_0_25px_#00fff230] transition-transform duration-300 hover:scale-[1.01]"
+      ></canvas>
+
+      <!-- Tombol Mulai -->
+      <a
+        id="btnPlay"
+        href="./game/sanca.html"
+        class="absolute bottom-4 px-8 py-3 rounded-full bg-gradient-to-r from-neon-green to-neon-cyan text-black font-extrabold uppercase tracking-wide shadow-[0_0_20px_#00ffc880] hover:shadow-[0_0_30px_#00fff2] hover:scale-105 transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"
+      >
+        <i class="fa-solid fa-play text-black"></i> Mulai
+      </a>
+    </figure>
+  </section>
+
+  <!-- ========== DASHBOARD FUTURISTIK (STATIS) ========== -->
+  <section id="dashboardSection" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 p-2 sm:p-4">
+
+    <!-- Kartu Statistik Pemain -->
+    <article
+      id="localStats"
+      class="relative overflow-hidden rounded-2xl border border-cyan-400/40 bg-gradient-to-br from-black/70 to-cyan-950/30 backdrop-blur-md p-5 shadow-[0_0_20px_#00ffff60] transition-transform duration-300 hover:scale-[1.02] hover:shadow-[0_0_35px_#00ffffa0]"
+    >
+      <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(0,255,255,0.08)_10%,transparent_12%)] bg-[length:20px_20px] animate-[pulseGlow_10s_linear_infinite]"></div>
+      </div>
+
+      <h3 class="relative text-lg sm:text-xl font-extrabold text-neon-cyan mb-4 tracking-wide drop-shadow-[0_0_10px_#00fff2] flex items-center gap-2">
+        <i class="fa-solid fa-user-astronaut text-neon-green"></i> Statistik Pemain
+      </h3>
+
+      <ul class="relative mt-3 space-y-2 text-sm text-gray-300 font-mono">
+        <li class="flex justify-between"><span>Total Permainan</span><span class="text-neon-green font-semibold">12</span></li>
+        <li class="flex justify-between"><span>Skor Tertinggi</span><span class="text-neon-green font-semibold">3,120</span></li>
+        <li class="flex justify-between"><span>Rata-rata Skor</span><span class="text-neon-cyan font-semibold">1,850</span></li>
+        <li class="flex justify-between"><span>Terakhir Dimainkan</span><span class="text-neon-cyan font-semibold">8 Okt 2025</span></li>
+      </ul>
+
+      <!-- Bar progress -->
+      <div class="relative mt-5">
+        <div class="text-xs uppercase text-gray-400 mb-1">Level Progres</div>
+        <div class="w-full h-2 bg-gray-800/70 rounded-full overflow-hidden">
+          <div class="h-2 w-3/4 bg-gradient-to-r from-neon-cyan to-neon-green animate-pulse"></div>
+        </div>
+      </div>
     </article>
 
-    <!-- LEVEL 2 -->
+    <!-- Kartu Informasi -->
     <article
-      class="relative group bg-gradient-to-br from-yellow-700/40 to-black/50 
-             border border-yellow-400/30 rounded-2xl p-6 backdrop-blur-sm
-             shadow-[0_0_15px_rgba(255,255,0,0.2)] hover:shadow-[0_0_25px_rgba(255,255,0,0.5)]
-             transition-all duration-300 hover:scale-105">
-      <div
-        class="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 
-               bg-gradient-to-br from-yellow-400/20 to-transparent blur-xl transition-all duration-500">
-      </div>
-      <h3 class="text-2xl font-bold mb-2 text-yellow-300 drop-shadow-md">Level 2: Menengah</h3>
-      <p class="mb-5 text-sm text-gray-200">
-        Uji kemampuanmu dengan kecepatan sedang dan lebih banyak rintangan.
-      </p>
-      <button
-        class="w-full py-2.5 rounded-lg bg-yellow-400 text-gray-900 font-bold 
-               hover:bg-yellow-300 hover:shadow-[0_0_20px_rgba(255,255,0,0.8)]
-               transition-all duration-200">
-        Mulai
-      </button>
-    </article>
-
-    <!-- LEVEL 3 -->
-    <article
-      class="relative group bg-gradient-to-br from-red-800/40 to-black/50 
-             border border-pink-400/30 rounded-2xl p-6 backdrop-blur-sm
-             shadow-[0_0_15px_rgba(255,0,100,0.2)] hover:shadow-[0_0_25px_rgba(255,0,100,0.5)]
-             transition-all duration-300 hover:scale-105">
-      <div
-        class="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 
-               bg-gradient-to-br from-pink-500/20 to-transparent blur-xl transition-all duration-500">
-      </div>
-      <h3 class="text-2xl font-bold mb-2 text-pink-400 drop-shadow-md">Level 3: Ahli</h3>
-      <p class="mb-5 text-sm text-gray-300">
-        Kecepatan tinggi dan tantangan ekstrem untuk pemain sejati.
-      </p>
-      <button
-        class="w-full py-2.5 rounded-lg bg-pink-500 text-white font-bold 
-               hover:bg-pink-400 hover:shadow-[0_0_20px_rgba(255,100,200,0.8)]
-               transition-all duration-200">
-        Mulai
-      </button>
-    </article>
-  </div>
-</section>
-  </main>
-
-  <!-- ===== FOOTER ===== -->
-  <footer class="border-t border-gray-700 bg-gray-900 text-gray-300 mt-12">
-    <div class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-
-      <div>
-        <h4 class="text-white text-lg font-bold mb-4">Tentang Sss Game</h4>
-        <p class="text-sm">Sss Game adalah permainan ular klasik dengan sentuhan modern dan efek neon. Bersainglah dengan teman dan jadilah legenda ular!</p>
+      id="gameInfo"
+      class="relative overflow-hidden rounded-2xl border border-green-400/40 bg-gradient-to-br from-black/70 to-green-950/30 backdrop-blur-md p-5 sm:p-6 lg:col-span-2 shadow-[0_0_20px_#00ff8060] transition-transform duration-300 hover:scale-[1.02] hover:shadow-[0_0_35px_#00ff80a0]"
+    >
+      <div class="absolute inset-0 pointer-events-none opacity-15">
+        <div class="absolute w-[200%] h-[200%] bg-[linear-gradient(90deg,rgba(0,255,128,0.2)_1px,transparent_1px),linear-gradient(rgba(0,255,128,0.2)_1px,transparent_1px)] bg-[size:25px_25px] animate-[scrollGrid_18s_linear_infinite]"></div>
       </div>
 
-      <div>
-        <h4 class="text-white text-lg font-bold mb-4">Link Cepat</h4>
-        <ul class="space-y-2 text-sm">
-          <li><a href="#" class="hover:text-green-400">Dashboard</a></li>
-          <li><a href="#" class="hover:text-green-400">Ranking</a></li>
-          <li><a href="#" class="hover:text-green-400">Level</a></li>
-          <li><a href="#" class="hover:text-green-400">Tentang</a></li>
-        </ul>
-      </div>
+      <h3 class="relative text-lg sm:text-xl font-extrabold text-neon-green mb-4 tracking-wide drop-shadow-[0_0_10px_#00ff80] flex items-center gap-2">
+        <i class="fa-solid fa-circle-info text-neon-cyan"></i> Informasi Permainan
+      </h3>
 
-      <div>
-        <h4 class="text-white text-lg font-bold mb-4">Sosial Media</h4>
-        <div class="flex space-x-5 text-2xl">
-          <a href="#" class="hover:text-blue-500"><i class="fab fa-facebook-f"></i></a>
-          <a href="#" class="hover:text-pink-500"><i class="fab fa-instagram"></i></a>
-          <a href="#" class="hover:text-red-600"><i class="fab fa-youtube"></i></a>
-          <a href="#" class="hover:text-green-500"><i class="fab fa-tiktok"></i></a>
+      <ul class="relative mt-3 text-sm text-gray-300 space-y-2 font-mono">
+        <li><strong>Versi:</strong> 1.0.3 — Optimized Neon Glow</li>
+        <li><strong>Tanggal Rilis:</strong> 8 Oktober 2025</li>
+        <li><strong>Developer:</strong> Den Mardiyana</li>
+      </ul>
+
+      <div class="relative mt-5">
+        <h4 class="text-neon-cyan font-semibold mb-2 uppercase tracking-wide">Tips Bermain</h4>
+        <div class="border-l-4 border-neon-cyan pl-4 text-sm text-gray-300 space-y-1">
+          <p>🕹️ Gunakan tombol arah untuk mengendalikan ular.</p>
+          <p>💡 Kumpulkan makanan bercahaya untuk menambah skor.</p>
+          <p>⚠️ Hindari menabrak ekormu sendiri!</p>
         </div>
       </div>
 
-      <div>
-        <h4 class="text-white text-lg font-bold mb-4">Newsletter</h4>
-        <p class="text-sm mb-3">Dapatkan update level dan event baru!</p>
-        <form class="flex flex-col space-y-2">
-          <input type="email" placeholder="Emailmu" class="p-2 rounded text-gray-900 focus:outline-none">
-          <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded font-semibold transition">Subscribe</button>
-        </form>
-      </div>
+      <footer class="relative mt-6 text-xs text-gray-500 italic text-center sm:text-left">
+        © 2025 Den Mardiyana — Sanca Game
+      </footer>
+    </article>
+  </section>
+</main>
 
+
+ <!-- ========== ASIDE SETTINGS ========== -->
+<aside
+id="asideSettings"
+class="neon fixed top-0 right-0 w-80 h-full bg-gradient-to-b from-black/95 via-gray-900/90 to-black/95
+       border-l border-neon-cyan/40 backdrop-blur-2xl shadow-[0_0_25px_#00fff260]
+       p-6 transition-all duration-500 ease-in-out translate-x-full opacity-0 pointer-events-none z-50"
+>
+<h3 class="text-xl font-bold mb-5 text-neon-cyan flex items-center gap-2 drop-shadow-[0_0_8px_#00fff2]">
+  <i class="fa-solid fa-gear animate-spin-slow"></i> Pengaturan
+</h3>
+
+<form id="settingsForm" class="space-y-5 text-sm text-gray-300">
+
+  <!-- Efek Suara -->
+  <label class="block font-semibold">
+    <span class="text-neon-green flex items-center gap-2">
+      <i class="fa-solid fa-volume-high"></i> Efek Suara
+    </span>
+    <div class="mt-1 flex items-center gap-2">
+      <input id="soundToggle" type="checkbox" checked class="accent-neon-cyan scale-110" />
+      <span class="text-gray-400 text-xs">Aktifkan / nonaktifkan efek suara game</span>
     </div>
-    <div class="text-center py-4 text-sm text-gray-500 border-t border-gray-800">&copy; 2025 Sss Game. All rights reserved.</div>
-  </footer>
+  </label>
 
-  <!-- Script -->
-  <script src="https://unpkg.com/three@0.148.0/build/three.min.js"></script>
-  <script src="./src/aside.js"></script>
-  <script src="./src/script.js"></script>
-  <script src="https://fpyf8.com/88/tag.min.js" data-zone="1288" async data-cfasync="false"></script>
-</body>
+  <!-- Tema Neon -->
+  <label class="block font-semibold">
+    <span class="text-neon-green flex items-center gap-2">
+      <i class="fa-solid fa-palette"></i> Tema Neon
+    </span>
+    <select
+      id="themeSelect"
+      class="mt-2 bg-gray-900/80 text-white rounded-md p-2 w-full border border-neon-green/40
+             focus:ring-2 focus:ring-neon-cyan focus:outline-none transition"
+    >
+      <option value="biru">Neon Biru (Default)</option>
+      <option value="hijau">Neon Hijau</option>
+      <option value="ungu">Neon Ungu</option>
+      <option value="merah">Neon Merah</option>
+    </select>
+  </label>
+
+  <!-- Kecepatan Animasi -->
+  <label class="block font-semibold">
+    <span class="text-neon-green flex items-center gap-2">
+      <i class="fa-solid fa-gauge-high"></i> Kecepatan Animasi
+    </span>
+    <input
+      id="speedRange"
+      type="range"
+      min="1"
+      max="10"
+      value="5"
+      class="w-full mt-2 accent-neon-cyan cursor-pointer"
+    />
+    <div class="flex justify-between text-[11px] text-gray-500">
+      <span>Lambat</span><span>Cepat</span>
+    </div>
+  </label>
+
+  <!-- Intensitas Glow -->
+  <label class="block font-semibold">
+    <span class="text-neon-green flex items-center gap-2">
+      <i class="fa-solid fa-lightbulb"></i> Intensitas Neon
+    </span>
+    <input
+      id="glowRange"
+      type="range"
+      min="1"
+      max="10"
+      value="6"
+      class="w-full mt-2 accent-neon-green cursor-pointer"
+    />
+    <div class="flex justify-between text-[11px] text-gray-500">
+      <span>Redup</span><span>Terang</span>
+    </div>
+  </label>
+
+<!-- Tombol Tutup + Simpan -->
+<div class="mt-6 flex gap-3">
+  <!-- Tombol Simpan -->
+  <button
+    id="btnSaveAside"
+    type="button"
+    class="flex-1 py-2 bg-gradient-to-r from-neon-green to-neon-cyan hover:from-neon-cyan hover:to-neon-green
+           rounded-lg font-semibold text-black transition-all duration-300 shadow-[0_0_15px_#00fff0]"
+  >
+    Simpan
+  </button>
+
+  <!-- Tombol Tutup -->
+  <button
+    id="btnCloseAside"
+    type="button"
+    class="flex-1 py-2 bg-gradient-to-r from-neon-cyan to-neon-green hover:from-neon-green hover:to-white
+           rounded-lg font-semibold text-black transition-all duration-300 shadow-[0_0_15px_#00fff0]"
+  >
+    Tutup
+  </button>
+</div>
+
+</form>
+</aside>
+
+
+ <!-- ====== FOOTER ====== -->
+<footer
+class="neon border-t border-neon-cyan/30 bg-black/70 text-gray-300 mt-16 backdrop-blur-xl shadow-[0_-0_25px_#00ffc840]"
+>
+<div
+  class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10"
+>
+  <!-- Tentang -->
+  <div>
+    <h4
+      class="text-white text-lg font-bold mb-4 tracking-wide text-neon-green"
+    >
+      Tentang SANCA
+    </h4>
+    <p class="text-sm leading-relaxed text-gray-400">
+      SANCA adalah permainan ular bergaya neon dengan sentuhan futuristik.
+      Tidak butuh login — cukup main, nikmati efek, dan jadi legenda digital.
+    </p>
+  </div>
+
+  <!-- Link Cepat -->
+  <div>
+    <h4
+      class="text-white text-lg font-bold mb-4 tracking-wide text-neon-cyan"
+    >
+      Navigasi
+    </h4>
+    <ul class="space-y-2 text-sm">
+      <li>
+        <a
+          href="index.html"
+          class="hover:text-neon-green hover:pl-1 transition-all duration-300"
+          >Dashboard</a
+        >
+      </li>
+      <li>
+        <a
+          href="panduan.html"
+          class="hover:text-neon-green hover:pl-1 transition-all duration-300"
+          >Panduan</a
+        >
+      </li>
+      <li>
+        <a
+          href="./public/eksperimen.html"
+          class="hover:text-neon-green hover:pl-1 transition-all duration-300"
+          >Eksperimen</a
+        >
+      </li>
+      <li>
+        <a
+          href="tentang.html"
+          class="hover:text-neon-green hover:pl-1 transition-all duration-300"
+          >Tentang</a
+        >
+      </li>
+      <li>
+        <a
+          href="./public/mode.html"
+          class="hover:text-neon-green hover:pl-1 transition-all duration-300"
+          >Mode</a
+        >
+      </li>
+      <li>
+        <a
+          href="./public/dev.html"
+          class="hover:text-neon-green hover:pl-1 transition-all duration-300"
+          >Dev tools</a
+        >
+      </li>
+    </ul>
+  </div>
+
+  <!-- Sosial Media -->
+  <div>
+    <h4
+      class="text-white text-lg font-bold mb-4 tracking-wide text-neon-green"
+    >
+      Sosial Media
+    </h4>
+    <div class="flex space-x-5 text-2xl">
+      <a
+        href="#"
+        class="hover:text-neon-cyan transition-all duration-300 hover:scale-110"
+      >
+        <i class="fab fa-facebook-f drop-shadow-[0_0_8px_#00fff2]"></i>
+      </a>
+      <a
+        href="#"
+        class="hover:text-pink-500 transition-all duration-300 hover:scale-110"
+      >
+        <i class="fab fa-instagram drop-shadow-[0_0_8px_#ff00ff]"></i>
+      </a>
+      <a
+        href="#"
+        class="hover:text-red-500 transition-all duration-300 hover:scale-110"
+      >
+        <i class="fab fa-youtube drop-shadow-[0_0_8px_#ff0040]"></i>
+      </a>
+      <a
+        href="#"
+        class="hover:text-green-500 transition-all duration-300 hover:scale-110"
+      >
+        <i class="fab fa-tiktok drop-shadow-[0_0_8px_#00ff88]"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Newsletter -->
+  <div>
+    <h4
+      class="text-white text-lg font-bold mb-4 tracking-wide text-neon-cyan"
+    >
+      Newsletter
+    </h4>
+    <p class="text-sm mb-3 text-gray-400">
+      Dapatkan kabar rilis level baru & pembaruan fitur.
+    </p>
+    <form class="flex flex-col space-y-3">
+      <input
+        type="email"
+        placeholder="Emailmu"
+        class="p-2 rounded-md bg-black/40 border border-neon-green/30 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-neon-green focus:ring-2 focus:ring-neon-cyan transition-all"
+      />
+      <button
+        type="submit"
+        class="py-2 rounded-md bg-gradient-to-r from-neon-green to-neon-cyan font-semibold text-black hover:from-neon-cyan hover:to-white shadow-[0_0_15px_#00ffc8] transition-all duration-300"
+      >
+        Subscribe ✨
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Copyright -->
+<div
+  class="text-center py-4 text-xs sm:text-sm text-gray-500 border-t border-neon-cyan/20 bg-black/60"
+>
+  © 2025 <span class="text-neon-green font-semibold">SANCA</span>. Semua hak cipta dilindungi.
+</div>
+</footer>
+
+
+    <!-- ========== SCRIPT ========== -->
+    <script src="./src/sanca.js"></script>
+  </body>
 </html>
