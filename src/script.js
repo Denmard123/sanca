@@ -186,13 +186,14 @@ document.addEventListener("DOMContentLoaded", () => {
         playIntent = true;
         showModal();
       }
-            // GA4 tracking
-  gtag('event', 'game_score', {
-    'event_category': 'Game',
-    'event_label': 'Sanca Bro',
-    'value': sc
-  });
+    
+      // GA4 tracking klik tombol main (tanpa skor)
+      gtag('event', 'start_game', {
+        'event_category': 'Game',
+        'event_label': 'Sanca Bro'
+      });
     });
+    
   
     saveNameBtn?.addEventListener("click", () => {
       const name = playerInput?.value.trim();
@@ -240,7 +241,15 @@ document.addEventListener("DOMContentLoaded", () => {
         minute: "2-digit",
       });
       saveStats(s);
+    
+      // GA4 tracking skor
+      gtag('event', 'game_score', {
+        'event_category': 'Game',
+        'event_label': 'Sanca Bro',
+        'value': sc
+      });
     };
+    
   
     // ===== Cross-tab sync =====
     window.addEventListener("storage", (e) => {
