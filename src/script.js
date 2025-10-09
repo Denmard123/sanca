@@ -186,6 +186,12 @@ document.addEventListener("DOMContentLoaded", () => {
         playIntent = true;
         showModal();
       }
+            // GA4 tracking
+  gtag('event', 'game_score', {
+    'event_category': 'Game',
+    'event_label': 'Sanca Bro',
+    'value': sc
+  });
     });
   
     saveNameBtn?.addEventListener("click", () => {
@@ -234,13 +240,6 @@ document.addEventListener("DOMContentLoaded", () => {
         minute: "2-digit",
       });
       saveStats(s);
-
-      // GA4 tracking
-  gtag('event', 'game_score', {
-    'event_category': 'Game',
-    'event_label': 'Sanca Bro',
-    'value': sc
-  });
     };
   
     // ===== Cross-tab sync =====
