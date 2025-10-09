@@ -53,7 +53,7 @@
       "https://www.effectivegatecpm.com/bjzmc9dq?key=e2a5368a1f07954f88b18471d713ca11",
       "https://www.effectivegatecpm.com/pdagayae6?key=349f5f0ece099faad9739f8ca420f8d0",
       "https://www.effectivegatecpm.com/v72t1uc6?key=3df42876293187cc79d5ac9ccc7d9f99",
-      ""
+      "https://www.effectivegatecpm.com/v4nmaj4t2c?key=cbfa82ff775447b9db50ca7dceb009f7"
     ];
     const randomLink = () => adsLinks[Math.floor(Math.random() * adsLinks.length)];
   
