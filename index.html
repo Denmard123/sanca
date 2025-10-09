@@ -366,13 +366,19 @@
         <li class="flex justify-between"><span>Terakhir Dimainkan</span><span class="text-neon-cyan font-semibold">8 Okt 2025</span></li>
       </ul>
 
-      <!-- Bar progress -->
-      <div class="relative mt-5">
-        <div class="text-xs uppercase text-gray-400 mb-1">Level Progres</div>
-        <div class="w-full h-2 bg-gray-800/70 rounded-full overflow-hidden">
-          <div class="h-2 w-3/4 bg-gradient-to-r from-neon-cyan to-neon-green animate-pulse"></div>
-        </div>
-      </div>
+      <!-- Bar progress (Dynamic) -->
+<div class="relative mt-5" id="progressContainer">
+  <div class="text-xs uppercase text-gray-400 mb-1">Level Progres</div>
+  <div class="w-full h-2 bg-gray-800/70 rounded-full overflow-hidden">
+    <div id="progressBar" class="h-2 bg-gradient-to-r from-neon-cyan to-neon-green transition-all duration-700"></div>
+  </div>
+  <div class="mt-2 flex justify-between text-xs text-gray-400">
+    <span id="progressGame">Game: -</span>
+    <span id="progressScore">0 / 100</span>
+  </div>
+  <div class="mt-1 text-[11px] text-gray-500 italic" id="progressDetail">Menunggu data...</div>
+</div>
+
     </article>
 
     <!-- Kartu Informasi -->
@@ -660,5 +666,6 @@ class="neon border-t border-neon-cyan/30 bg-black/70 text-gray-300 mt-16 backdro
 
     <!-- ========== SCRIPT ========== -->
     <script src="./src/sanca.js"></script>
+    <script src="./src/script.js"></script>
   </body>
 </html>

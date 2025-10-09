@@ -1,25 +1,22 @@
-/* game.js — robust versi (memperbaiki null-element errors, pause/resume speed)
-   Pastikan file ini dipanggil setelah HTML (di bottom of body).
-*/
+/* game.js — versi sinkron dashboard + fix speed persist, robust null-check + dashboard integration */
 (function () {
-    // --- DOM references (tolerant jika elemen tidak ada) ---
+    // --- DOM references ---
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
   
     const overlay = document.getElementById("overlay");
     const gameOverOverlay = document.getElementById("gameOverOverlay");
-    const startBtnEls = Array.from(document.querySelectorAll("#startBtn")); // handle duplicates
-    const restartBtnEls = Array.from(document.querySelectorAll("#restartBtn")); // handle duplicates
+    const startBtnEls = Array.from(document.querySelectorAll("#startBtn"));
+    const restartBtnEls = Array.from(document.querySelectorAll("#restartBtn"));
   
     const pauseBtn = document.getElementById("pauseBtn");
     const resumeBtn = document.getElementById("resumeBtn");
-    const headerRestart = document.getElementById("headerRestart"); // optional
+    const headerRestart = document.getElementById("headerRestart");
   
     const celebration = document.getElementById("celebration");
     const celebrationText = document.getElementById("celebrationText");
     const continueBtn = document.getElementById("continueBtn");
   
-    // require canvas/context
     if (!canvas || !ctx) {
       console.error("Canvas or context not found. game.js aborted.");
       return;
@@ -37,8 +34,8 @@
     let direction = "RIGHT";
     let nextDirection = "RIGHT";
     let score = 0;
-    let baseSpeed = 150; // starting ms
-    let speed = baseSpeed; // current tick interval (persist across pause/resume)
+    let baseSpeed = 150;
+    let speed = baseSpeed;
     let visualScale = 1.0;
     let gridOffset = 0;
   
@@ -47,7 +44,7 @@
     let waitingContinue = false;
     let loopTimer = null;
   
-    // ads
+    // --- ads (opsional) ---
     const adsLinks = [
       "https://otieu.com/4/9979613",
       "https://otieu.com/4/6159302",
@@ -56,46 +53,41 @@
     ];
     const randomLink = () => adsLinks[Math.floor(Math.random() * adsLinks.length)];
   
-    // --- helpers to show/hide overlays (ke HTML yang ada) ---
+    // --- helpers ---
     function showOverlay(el) {
       if (!el) return;
       el.classList.remove("hidden");
-      el.classList.add("show");
-      // many overlays expect flex container
-      if (!el.classList.contains("flex")) el.classList.add("flex");
+      el.classList.add("show", "flex");
     }
     function hideOverlay(el) {
       if (!el) return;
       el.classList.add("hidden");
-      el.classList.remove("show");
-      if (el.classList.contains("flex")) el.classList.remove("flex");
+      el.classList.remove("show", "flex");
     }
   
-    // toggle header/start button visibility (tolerant)
     function toggleHeaderButtons() {
-      // start buttons (could be multiple)
       if (!gameRunning) {
-        startBtnEls.forEach(el => el && el.classList.remove("hidden"));
-        if (pauseBtn) pauseBtn.classList.add("hidden");
-        if (resumeBtn) resumeBtn.classList.add("hidden");
-        if (headerRestart) headerRestart.classList.add("hidden");
+        startBtnEls.forEach(el => el?.classList.remove("hidden"));
+        pauseBtn?.classList.add("hidden");
+        resumeBtn?.classList.add("hidden");
+        headerRestart?.classList.add("hidden");
         return;
       }
   
       if (paused || waitingContinue) {
-        startBtnEls.forEach(el => el && el.classList.add("hidden"));
-        if (pauseBtn) pauseBtn.classList.add("hidden");
-        if (resumeBtn) resumeBtn.classList.remove("hidden");
-        if (headerRestart) headerRestart.classList.remove("hidden");
+        startBtnEls.forEach(el => el?.classList.add("hidden"));
+        pauseBtn?.classList.add("hidden");
+        resumeBtn?.classList.remove("hidden");
+        headerRestart?.classList.remove("hidden");
       } else {
-        startBtnEls.forEach(el => el && el.classList.add("hidden"));
-        if (pauseBtn) pauseBtn.classList.remove("hidden");
-        if (resumeBtn) resumeBtn.classList.add("hidden");
-        if (headerRestart) headerRestart.classList.remove("hidden");
+        startBtnEls.forEach(el => el?.classList.add("hidden"));
+        pauseBtn?.classList.remove("hidden");
+        resumeBtn?.classList.add("hidden");
+        headerRestart?.classList.remove("hidden");
       }
     }
   
-    // --- game functions ---
+    // --- game logic ---
     function initGame() {
       cols = Math.floor(canvas.width / cellSize);
       rows = Math.floor(canvas.height / cellSize);
@@ -115,7 +107,7 @@
       hideOverlay(overlay);
       hideOverlay(gameOverOverlay);
       hideOverlay(celebration);
-      if (continueBtn) continueBtn.classList.add("hidden");
+      continueBtn?.classList.add("hidden");
   
       clearTimeout(loopTimer);
       toggleHeaderButtons();
@@ -124,10 +116,8 @@
     }
   
     function spawnFood() {
-      // robust spawn not overlapping snake
       const maxTries = Math.max(200, cols * rows);
-      let tries = 0;
-      let fx, fy;
+      let tries = 0, fx, fy;
       do {
         fx = Math.floor(Math.random() * cols);
         fy = Math.floor(Math.random() * rows);
@@ -148,21 +138,12 @@
     }
   
     function draw() {
-      // background gradient
-      const bg = ctx.createRadialGradient(
-        canvas.width / 2,
-        canvas.height / 2,
-        50,
-        canvas.width / 2,
-        canvas.height / 2,
-        300
-      );
+      const bg = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, 300);
       bg.addColorStop(0, "#001100");
       bg.addColorStop(1, "#000000");
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-      // moving grid
       gridOffset += 0.4;
       ctx.strokeStyle = "rgba(0,255,100,0.06)";
       ctx.lineWidth = 1;
@@ -179,7 +160,6 @@
         ctx.stroke();
       }
   
-      // draw snake (render-only scale)
       const segSize = Math.max(4, Math.floor(cellSize * visualScale));
       const pad = Math.max(0, Math.floor((cellSize - segSize) / 2));
       for (let i = 0; i < snake.length; i++) {
@@ -198,7 +178,6 @@
         ctx.shadowBlur = 0;
       }
   
-      // draw food (orb)
       if (food) {
         const fx = food.x * cellSize + cellSize / 2;
         const fy = food.y * cellSize + cellSize / 2;
@@ -211,47 +190,36 @@
         ctx.fill();
       }
   
-      // score text
       ctx.fillStyle = "#00ff88";
       ctx.font = "bold 15px Courier New, monospace";
       ctx.textAlign = "left";
       ctx.fillText(`SCORE: ${score}`, 12, canvas.height - 8);
     }
   
-    // main loop (uses setTimeout so speed persists across pause/resume)
     function loop() {
       if (!gameRunning) return;
-  
-      // if paused or waiting, render and keep timer off (we don't queue new game ticks)
-      if (paused || waitingContinue) {
-        draw();
-        return;
-      }
+      if (paused || waitingContinue) { draw(); return; }
   
       draw();
       clearTimeout(loopTimer);
       loopTimer = setTimeout(() => {
-        // compute next head
         const head = { ...snake[0] };
         if (nextDirection === "LEFT") head.x -= 1;
         if (nextDirection === "UP") head.y -= 1;
         if (nextDirection === "RIGHT") head.x += 1;
         if (nextDirection === "DOWN") head.y += 1;
   
-        // commit direction
         direction = nextDirection;
   
-        // eat?
         if (food && head.x === food.x && head.y === food.y) {
           score++;
           food = spawnFood();
   
           if (score % 10 === 0 && score < 100) {
-            // increase speed and visual scale, then pause & open ad
             speed = Math.max(60, speed - 10);
             visualScale = Math.min(1.6, visualScale + 0.12);
             pauseAndCelebrate();
-            return; // paused by pauseAndCelebrate
+            return;
           }
   
           if (score === 100) {
@@ -259,46 +227,37 @@
             return;
           }
         } else {
-          // normal: move tail
           snake.pop();
         }
   
-        // collision check
         if (
-          head.x < 0 ||
-          head.y < 0 ||
-          head.x >= cols ||
-          head.y >= rows ||
+          head.x < 0 || head.y < 0 ||
+          head.x >= cols || head.y >= rows ||
           snake.some(s => s.x === head.x && s.y === head.y)
         ) {
           gameOver();
           return;
         }
   
-        // add head & continue
         snake.unshift(head);
-        // recursive loop:
         loop();
       }, speed);
     }
   
-    // --- Pause & celebration (open ad in new tab) ---
+    // --- PAUSE/RESUME ---
     function pauseAndCelebrate() {
       if (!gameRunning) return;
       paused = true;
       waitingContinue = true;
       clearTimeout(loopTimer);
   
-      // show celebration overlay + continue button
-      if (celebrationText) celebrationText.innerText = "+10 🎉";
+      celebrationText && (celebrationText.innerText = "+10 🎉");
       showOverlay(celebration);
-      if (continueBtn) continueBtn.classList.remove("hidden");
-  
+      continueBtn?.classList.remove("hidden");
       toggleHeaderButtons();
   
-      // open ad after small delay so UI can render
       setTimeout(() => {
-        try { window.open(randomLink(), "_blank"); } catch (e) { /* ignore */ }
+        try { window.open(randomLink(), "_blank"); } catch { }
       }, 300);
     }
   
@@ -307,47 +266,20 @@
       waitingContinue = false;
       paused = false;
       hideOverlay(celebration);
-      if (continueBtn) continueBtn.classList.add("hidden");
+      continueBtn?.classList.add("hidden");
       toggleHeaderButtons();
       focusCanvas();
       clearTimeout(loopTimer);
       loop();
     }
   
-    // --- finish / game over ---
-    function finishGame() {
-      gameRunning = false;
-      clearTimeout(loopTimer);
-      if (celebrationText) celebrationText.innerText = "🎆 GAME COMPLETED! 🏁";
-      showOverlay(celebration);
-      if (continueBtn) continueBtn.classList.add("hidden");
-      toggleHeaderButtons();
-      setTimeout(() => {
-        hideOverlay(celebration);
-        showOverlay(gameOverOverlay);
-        const finalEl = document.getElementById("finalScore");
-        if (finalEl) finalEl.textContent = `Skor kamu: ${score}`;
-      }, 1200);
-    }
-  
-    function gameOver() {
-      gameRunning = false;
-      clearTimeout(loopTimer);
-      hideOverlay(celebration);
-      if (continueBtn) continueBtn.classList.add("hidden");
-      showOverlay(gameOverOverlay);
-      toggleHeaderButtons();
-      const finalEl = document.getElementById("finalScore");
-      if (finalEl) finalEl.textContent = `Skor kamu: ${score}`;
-    }
-  
-    // --- pause / resume (header buttons & keyboard) ---
     function pauseGame() {
       if (!gameRunning || paused || waitingContinue) return;
       paused = true;
       clearTimeout(loopTimer);
       toggleHeaderButtons();
     }
+  
     function resumeGame() {
       if (!gameRunning || waitingContinue) return;
       if (!paused) return;
@@ -358,32 +290,85 @@
       loop();
     }
   
-    // --- focus canvas and prevent default scroll for arrows/space while playing ---
+// --- SAVE SCORE TO DASHBOARD ---
+function saveGameResult(score) {
+    // sinkron dengan dashboard storage
+    const KEY = "sancaPlayerStats_v1";
+    let stats = JSON.parse(localStorage.getItem(KEY)) || {
+      name: null,
+      totalGames: 0,
+      totalScore: 0,
+      highScore: 0,
+      lastPlayed: "-"
+    };
+  
+    stats.totalGames += 1;
+    stats.totalScore += score;
+    stats.highScore = Math.max(stats.highScore, score);
+    stats.lastPlayed = new Date().toLocaleString("id-ID", {
+      day: "2-digit", month: "short", year: "numeric", 
+      hour: "2-digit", minute: "2-digit"
+    });
+  
+    localStorage.setItem(KEY, JSON.stringify(stats));
+  
+    // juga panggil dashboard renderer bila tersedia
+    if (window.updatePlayerStats) {
+      try { window.updatePlayerStats(score); } catch (e) { console.warn(e); }
+    }
+  }
+    
+  // --- GAME ENDINGS ---
+  function finishGame() {
+    gameRunning = false;
+    clearTimeout(loopTimer);
+    saveGameResult(score);
+    celebrationText && (celebrationText.innerText = "🎆 GAME COMPLETED! 🏁");
+    showOverlay(celebration);
+    continueBtn?.classList.add("hidden");
+    toggleHeaderButtons();
+    setTimeout(() => {
+      hideOverlay(celebration);
+      showOverlay(gameOverOverlay);
+      const finalEl = document.getElementById("finalScore");
+      if (finalEl) finalEl.textContent = `Skor kamu: ${score}`;
+    }, 1200);
+  }
+  
+  function gameOver() {
+    gameRunning = false;
+    clearTimeout(loopTimer);
+    saveGameResult(score);
+    hideOverlay(celebration);
+    continueBtn?.classList.add("hidden");
+    showOverlay(gameOverOverlay);
+    toggleHeaderButtons();
+    const finalEl = document.getElementById("finalScore");
+    if (finalEl) finalEl.textContent = `Skor kamu: ${score}`;
+  }
+  
+  
+    // --- CONTROLS ---
     function focusCanvas() {
       try {
         canvas.setAttribute("tabindex", "-1");
         canvas.focus({ preventScroll: true });
-      } catch (e) { /* ignore */ }
+      } catch { }
     }
   
-    // keyboard handler
     function handleKeyDown(e) {
       const arrows = ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"];
       const isSpace = e.code === "Space" || e.key === " ";
   
-      // prevent page scroll while playing
       if (gameRunning && (arrows.includes(e.key) || isSpace)) e.preventDefault();
   
       if (isSpace) {
-        // space = start / continue / resume depending on state
-        if (!gameRunning) { initGame(); return; }
-        if (waitingContinue) { continueGame(); return; }
-        if (paused) { resumeGame(); return; }
-        // if running & not paused, do nothing (or optionally pause)
+        if (!gameRunning) return initGame();
+        if (waitingContinue) return continueGame();
+        if (paused) return resumeGame();
         return;
       }
   
-      // arrows: only when game active & not waitingContinue
       if (!gameRunning || waitingContinue) return;
       if (e.key === "ArrowLeft" && direction !== "RIGHT") nextDirection = "LEFT";
       if (e.key === "ArrowUp" && direction !== "DOWN") nextDirection = "UP";
@@ -391,56 +376,33 @@
       if (e.key === "ArrowDown" && direction !== "UP") nextDirection = "DOWN";
     }
   
-    // touch controls (mobile)
     function setupTouchControls() {
       const btns = document.querySelectorAll(".control-btn");
-      if (!btns) return;
-      btns.forEach(btn => {
+      btns?.forEach(btn => {
         btn.addEventListener("touchstart", ev => {
           ev.preventDefault();
-          if (waitingContinue) { continueGame(); return; }
+          if (waitingContinue) return continueGame();
           const dir = btn.dataset.dir;
           if (dir === "LEFT" && direction !== "RIGHT") nextDirection = "LEFT";
           if (dir === "UP" && direction !== "DOWN") nextDirection = "UP";
           if (dir === "RIGHT" && direction !== "LEFT") nextDirection = "RIGHT";
           if (dir === "DOWN" && direction !== "UP") nextDirection = "DOWN";
         }, { passive: false });
-  
-        // also click fallback
-        btn.addEventListener("click", () => {
-          if (waitingContinue) { continueGame(); return; }
-          const dir = btn.dataset.dir;
-          if (dir === "LEFT" && direction !== "RIGHT") nextDirection = "LEFT";
-          if (dir === "UP" && direction !== "DOWN") nextDirection = "UP";
-          if (dir === "RIGHT" && direction !== "LEFT") nextDirection = "RIGHT";
-          if (dir === "DOWN" && direction !== "UP") nextDirection = "DOWN";
-        });
       });
     }
   
-    // --- attach event listeners safely ---
-    // start buttons (could be several e.g. header + overlay)
-    startBtnEls.forEach(btn => {
-      if (btn) btn.addEventListener("click", () => { initGame(); focusCanvas(); });
-    });
-  
-    // restart overlay(s)
-    restartBtnEls.forEach(btn => {
-      if (btn) btn.addEventListener("click", () => { initGame(); focusCanvas(); });
-    });
-  
-    if (headerRestart) headerRestart.addEventListener("click", () => { initGame(); focusCanvas(); });
-  
-    if (pauseBtn) pauseBtn.addEventListener("click", pauseGame);
-    if (resumeBtn) resumeBtn.addEventListener("click", resumeGame);
-    if (continueBtn) continueBtn.addEventListener("click", () => { continueGame(); focusCanvas(); });
+    // --- attach event listeners ---
+    startBtnEls.forEach(btn => btn?.addEventListener("click", () => { initGame(); focusCanvas(); }));
+    restartBtnEls.forEach(btn => btn?.addEventListener("click", () => { initGame(); focusCanvas(); }));
+    headerRestart?.addEventListener("click", () => { initGame(); focusCanvas(); });
+    pauseBtn?.addEventListener("click", pauseGame);
+    resumeBtn?.addEventListener("click", resumeGame);
+    continueBtn?.addEventListener("click", () => { continueGame(); focusCanvas(); });
   
     document.addEventListener("keydown", handleKeyDown, { passive: false });
     canvas.addEventListener("click", focusCanvas);
-  
     setupTouchControls();
   
-    // initial UI state
     showOverlay(overlay);
     toggleHeaderButtons();
   })();
