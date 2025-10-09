@@ -1,48 +1,53 @@
-/* === SANCA GAME - FIXED CONTROL + PAUSE HEADER ===
-   - Pause & Resume di header
-   - Pause tiap 10 poin buka iklan
-   - Spacebar = start / resume / continue
-   - Tidak ganggu control mobile atau arrow
+/* game.js — robust versi (memperbaiki null-element errors, pause/resume speed)
+   Pastikan file ini dipanggil setelah HTML (di bottom of body).
 */
-
 (function () {
-    // === DOM ELEMENTS ===
+    // --- DOM references (tolerant jika elemen tidak ada) ---
     const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
+  
     const overlay = document.getElementById("overlay");
     const gameOverOverlay = document.getElementById("gameOverOverlay");
-    const startBtn = document.getElementById("startBtn");
-    const restartBtn = document.getElementById("restartBtn");
+    const startBtnEls = Array.from(document.querySelectorAll("#startBtn")); // handle duplicates
+    const restartBtnEls = Array.from(document.querySelectorAll("#restartBtn")); // handle duplicates
+  
+    const pauseBtn = document.getElementById("pauseBtn");
+    const resumeBtn = document.getElementById("resumeBtn");
+    const headerRestart = document.getElementById("headerRestart"); // optional
+  
     const celebration = document.getElementById("celebration");
     const celebrationText = document.getElementById("celebrationText");
     const continueBtn = document.getElementById("continueBtn");
   
-    // Tombol header pause/resume
-    const pauseBtn = document.getElementById("pauseBtn");
-    const resumeBtn = document.getElementById("resumeBtn");
+    // require canvas/context
+    if (!canvas || !ctx) {
+      console.error("Canvas or context not found. game.js aborted.");
+      return;
+    }
   
-    // === CONFIG ===
+    // --- game constants / state ---
     canvas.width = 400;
     canvas.height = 400;
     const cellSize = 15;
     let cols = Math.floor(canvas.width / cellSize);
     let rows = Math.floor(canvas.height / cellSize);
   
-    // === STATE ===
     let snake = [];
     let food = null;
     let direction = "RIGHT";
     let nextDirection = "RIGHT";
     let score = 0;
-    let speed = 150;
+    let baseSpeed = 150; // starting ms
+    let speed = baseSpeed; // current tick interval (persist across pause/resume)
+    let visualScale = 1.0;
+    let gridOffset = 0;
+  
     let gameRunning = false;
     let paused = false;
     let waitingContinue = false;
     let loopTimer = null;
-    let visualScale = 1.0;
-    let gridOffset = 0;
   
-    // === ADS ===
+    // ads
     const adsLinks = [
       "https://otieu.com/4/9979613",
       "https://otieu.com/4/6159302",
@@ -51,41 +56,57 @@
     ];
     const randomLink = () => adsLinks[Math.floor(Math.random() * adsLinks.length)];
   
-    // === UI HELPERS ===
-    const showOverlay = (el) => {
+    // --- helpers to show/hide overlays (ke HTML yang ada) ---
+    function showOverlay(el) {
+      if (!el) return;
       el.classList.remove("hidden");
       el.classList.add("show");
-    };
-    const hideOverlay = (el) => {
+      // many overlays expect flex container
+      if (!el.classList.contains("flex")) el.classList.add("flex");
+    }
+    function hideOverlay(el) {
+      if (!el) return;
       el.classList.add("hidden");
       el.classList.remove("show");
-    };
+      if (el.classList.contains("flex")) el.classList.remove("flex");
+    }
   
-    const toggleHeaderButtons = () => {
+    // toggle header/start button visibility (tolerant)
+    function toggleHeaderButtons() {
+      // start buttons (could be multiple)
       if (!gameRunning) {
-        pauseBtn.classList.add("hidden");
-        resumeBtn.classList.add("hidden");
-        startBtn.classList.remove("hidden");
-      } else if (paused || waitingContinue) {
-        pauseBtn.classList.add("hidden");
-        resumeBtn.classList.remove("hidden");
-      } else {
-        pauseBtn.classList.remove("hidden");
-        resumeBtn.classList.add("hidden");
-        startBtn.classList.add("hidden");
+        startBtnEls.forEach(el => el && el.classList.remove("hidden"));
+        if (pauseBtn) pauseBtn.classList.add("hidden");
+        if (resumeBtn) resumeBtn.classList.add("hidden");
+        if (headerRestart) headerRestart.classList.add("hidden");
+        return;
       }
-    };
   
-    // === GAME INIT ===
+      if (paused || waitingContinue) {
+        startBtnEls.forEach(el => el && el.classList.add("hidden"));
+        if (pauseBtn) pauseBtn.classList.add("hidden");
+        if (resumeBtn) resumeBtn.classList.remove("hidden");
+        if (headerRestart) headerRestart.classList.remove("hidden");
+      } else {
+        startBtnEls.forEach(el => el && el.classList.add("hidden"));
+        if (pauseBtn) pauseBtn.classList.remove("hidden");
+        if (resumeBtn) resumeBtn.classList.add("hidden");
+        if (headerRestart) headerRestart.classList.remove("hidden");
+      }
+    }
+  
+    // --- game functions ---
     function initGame() {
       cols = Math.floor(canvas.width / cellSize);
       rows = Math.floor(canvas.height / cellSize);
+  
       snake = [{ x: Math.floor(cols / 2), y: Math.floor(rows / 2) }];
       food = spawnFood();
       direction = "RIGHT";
       nextDirection = "RIGHT";
       score = 0;
-      speed = 150;
+      baseSpeed = 150;
+      speed = baseSpeed;
       visualScale = 1.0;
       paused = false;
       waitingContinue = false;
@@ -94,25 +115,41 @@
       hideOverlay(overlay);
       hideOverlay(gameOverOverlay);
       hideOverlay(celebration);
-      continueBtn.classList.add("hidden");
+      if (continueBtn) continueBtn.classList.add("hidden");
   
+      clearTimeout(loopTimer);
       toggleHeaderButtons();
       focusCanvas();
       loop();
     }
   
     function spawnFood() {
+      // robust spawn not overlapping snake
+      const maxTries = Math.max(200, cols * rows);
+      let tries = 0;
       let fx, fy;
       do {
         fx = Math.floor(Math.random() * cols);
         fy = Math.floor(Math.random() * rows);
-      } while (snake.some((seg) => seg.x === fx && seg.y === fy));
+        tries++;
+        if (tries > maxTries) break;
+      } while (snake.some(seg => seg.x === fx && seg.y === fy));
       return { x: fx, y: fy };
     }
   
-    // === DRAW ===
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+  
     function draw() {
-      const bgGrad = ctx.createRadialGradient(
+      // background gradient
+      const bg = ctx.createRadialGradient(
         canvas.width / 2,
         canvas.height / 2,
         50,
@@ -120,13 +157,15 @@
         canvas.height / 2,
         300
       );
-      bgGrad.addColorStop(0, "#001100");
-      bgGrad.addColorStop(1, "#000000");
-      ctx.fillStyle = bgGrad;
+      bg.addColorStop(0, "#001100");
+      bg.addColorStop(1, "#000000");
+      ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
   
+      // moving grid
       gridOffset += 0.4;
       ctx.strokeStyle = "rgba(0,255,100,0.06)";
+      ctx.lineWidth = 1;
       for (let i = 0; i <= canvas.width; i += cellSize) {
         ctx.beginPath();
         ctx.moveTo(i + (gridOffset % cellSize), 0);
@@ -140,128 +179,126 @@
         ctx.stroke();
       }
   
-      const segRenderSize = Math.max(4, Math.floor(cellSize * visualScale));
-      const pad = Math.max(0, Math.floor((cellSize - segRenderSize) / 2));
-  
+      // draw snake (render-only scale)
+      const segSize = Math.max(4, Math.floor(cellSize * visualScale));
+      const pad = Math.max(0, Math.floor((cellSize - segSize) / 2));
       for (let i = 0; i < snake.length; i++) {
+        const seg = snake[i];
         const isHead = i === 0;
-        const gx = snake[i].x;
-        const gy = snake[i].y;
-        const px = gx * cellSize + pad;
-        const py = gy * cellSize + pad;
-  
-        const grad = ctx.createLinearGradient(px, py, px + segRenderSize, py + segRenderSize);
+        const px = seg.x * cellSize + pad;
+        const py = seg.y * cellSize + pad;
+        const grad = ctx.createLinearGradient(px, py, px + segSize, py + segSize);
         grad.addColorStop(0, isHead ? "#00ffcc" : "#00bb66");
         grad.addColorStop(1, isHead ? "#007755" : "#004422");
         ctx.fillStyle = grad;
         ctx.shadowColor = "#00ffaa";
-        ctx.shadowBlur = isHead ? 16 : 8;
+        ctx.shadowBlur = isHead ? 14 : 6;
+        roundRect(ctx, px + 1, py + 1, segSize - 2, segSize - 2, 4);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
   
-        const r = Math.min(6, Math.floor(segRenderSize / 3));
-        roundRect(ctx, px + 1, py + 1, segRenderSize - 2, segRenderSize - 2, r);
+      // draw food (orb)
+      if (food) {
+        const fx = food.x * cellSize + cellSize / 2;
+        const fy = food.y * cellSize + cellSize / 2;
+        const orb = ctx.createRadialGradient(fx, fy, 2, fx, fy, cellSize * 0.4);
+        orb.addColorStop(0, "#ffcc33");
+        orb.addColorStop(1, "#ff3300");
+        ctx.fillStyle = orb;
+        ctx.beginPath();
+        ctx.arc(fx, fy, cellSize * 0.4, 0, Math.PI * 2);
         ctx.fill();
       }
   
-      const fx = food.x * cellSize + cellSize / 2;
-      const fy = food.y * cellSize + cellSize / 2;
-      const orb = ctx.createRadialGradient(fx, fy, 2, fx, fy, cellSize * 0.4);
-      orb.addColorStop(0, "#ffcc33");
-      orb.addColorStop(1, "#ff3300");
-      ctx.fillStyle = orb;
-      ctx.beginPath();
-      ctx.arc(fx, fy, cellSize * 0.4, 0, Math.PI * 2);
-      ctx.fill();
-  
+      // score text
       ctx.fillStyle = "#00ff88";
-      ctx.font = "bold 15px Courier New";
+      ctx.font = "bold 15px Courier New, monospace";
       ctx.textAlign = "left";
       ctx.fillText(`SCORE: ${score}`, 12, canvas.height - 8);
     }
   
-    function roundRect(ctx, x, y, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
-      ctx.closePath();
-    }
-  
-    // === LOOP ===
+    // main loop (uses setTimeout so speed persists across pause/resume)
     function loop() {
       if (!gameRunning) return;
   
+      // if paused or waiting, render and keep timer off (we don't queue new game ticks)
       if (paused || waitingContinue) {
         draw();
-        loopTimer = setTimeout(loop, 100);
         return;
       }
   
       draw();
+      clearTimeout(loopTimer);
       loopTimer = setTimeout(() => {
-        let head = { ...snake[0] };
-        if (nextDirection === "LEFT") head.x--;
-        if (nextDirection === "UP") head.y--;
-        if (nextDirection === "RIGHT") head.x++;
-        if (nextDirection === "DOWN") head.y++;
+        // compute next head
+        const head = { ...snake[0] };
+        if (nextDirection === "LEFT") head.x -= 1;
+        if (nextDirection === "UP") head.y -= 1;
+        if (nextDirection === "RIGHT") head.x += 1;
+        if (nextDirection === "DOWN") head.y += 1;
+  
+        // commit direction
         direction = nextDirection;
   
-        if (head.x === food.x && head.y === food.y) {
+        // eat?
+        if (food && head.x === food.x && head.y === food.y) {
           score++;
           food = spawnFood();
   
           if (score % 10 === 0 && score < 100) {
+            // increase speed and visual scale, then pause & open ad
             speed = Math.max(60, speed - 10);
             visualScale = Math.min(1.6, visualScale + 0.12);
             pauseAndCelebrate();
+            return; // paused by pauseAndCelebrate
+          }
+  
+          if (score === 100) {
+            finishGame();
             return;
           }
         } else {
+          // normal: move tail
           snake.pop();
         }
   
+        // collision check
         if (
           head.x < 0 ||
           head.y < 0 ||
           head.x >= cols ||
           head.y >= rows ||
-          snake.some((s) => s.x === head.x && s.y === head.y)
+          snake.some(s => s.x === head.x && s.y === head.y)
         ) {
-          return gameOver();
+          gameOver();
+          return;
         }
   
+        // add head & continue
         snake.unshift(head);
+        // recursive loop:
         loop();
       }, speed);
     }
   
-    // === PAUSE / RESUME ===
-    function pauseGame() {
-      if (!gameRunning || paused || waitingContinue) return;
-      paused = true;
-      toggleHeaderButtons();
-    }
-  
-    function resumeGame() {
-      if (!gameRunning || waitingContinue) return;
-      paused = false;
-      toggleHeaderButtons();
-      focusCanvas();
-      loop();
-    }
-  
-    // === CELEBRATION + ADS ===
+    // --- Pause & celebration (open ad in new tab) ---
     function pauseAndCelebrate() {
+      if (!gameRunning) return;
       paused = true;
       waitingContinue = true;
-      celebrationText.innerText = "+10 🎉";
+      clearTimeout(loopTimer);
+  
+      // show celebration overlay + continue button
+      if (celebrationText) celebrationText.innerText = "+10 🎉";
       showOverlay(celebration);
-      continueBtn.classList.remove("hidden");
+      if (continueBtn) continueBtn.classList.remove("hidden");
+  
       toggleHeaderButtons();
   
+      // open ad after small delay so UI can render
       setTimeout(() => {
-        window.open(randomLink(), "_blank");
+        try { window.open(randomLink(), "_blank"); } catch (e) { /* ignore */ }
       }, 300);
     }
   
@@ -270,43 +307,83 @@
       waitingContinue = false;
       paused = false;
       hideOverlay(celebration);
-      continueBtn.classList.add("hidden");
+      if (continueBtn) continueBtn.classList.add("hidden");
       toggleHeaderButtons();
       focusCanvas();
+      clearTimeout(loopTimer);
       loop();
     }
   
-    // === GAME END ===
-    function gameOver() {
+    // --- finish / game over ---
+    function finishGame() {
       gameRunning = false;
-      hideOverlay(celebration);
-      continueBtn.classList.add("hidden");
-      showOverlay(gameOverOverlay);
+      clearTimeout(loopTimer);
+      if (celebrationText) celebrationText.innerText = "🎆 GAME COMPLETED! 🏁";
+      showOverlay(celebration);
+      if (continueBtn) continueBtn.classList.add("hidden");
       toggleHeaderButtons();
-      document.getElementById("finalScore").textContent = `Skor kamu: ${score}`;
+      setTimeout(() => {
+        hideOverlay(celebration);
+        showOverlay(gameOverOverlay);
+        const finalEl = document.getElementById("finalScore");
+        if (finalEl) finalEl.textContent = `Skor kamu: ${score}`;
+      }, 1200);
     }
   
-    // === FOCUS & CONTROL ===
+    function gameOver() {
+      gameRunning = false;
+      clearTimeout(loopTimer);
+      hideOverlay(celebration);
+      if (continueBtn) continueBtn.classList.add("hidden");
+      showOverlay(gameOverOverlay);
+      toggleHeaderButtons();
+      const finalEl = document.getElementById("finalScore");
+      if (finalEl) finalEl.textContent = `Skor kamu: ${score}`;
+    }
+  
+    // --- pause / resume (header buttons & keyboard) ---
+    function pauseGame() {
+      if (!gameRunning || paused || waitingContinue) return;
+      paused = true;
+      clearTimeout(loopTimer);
+      toggleHeaderButtons();
+    }
+    function resumeGame() {
+      if (!gameRunning || waitingContinue) return;
+      if (!paused) return;
+      paused = false;
+      toggleHeaderButtons();
+      focusCanvas();
+      clearTimeout(loopTimer);
+      loop();
+    }
+  
+    // --- focus canvas and prevent default scroll for arrows/space while playing ---
     function focusCanvas() {
       try {
         canvas.setAttribute("tabindex", "-1");
         canvas.focus({ preventScroll: true });
-      } catch {}
+      } catch (e) { /* ignore */ }
     }
   
+    // keyboard handler
     function handleKeyDown(e) {
       const arrows = ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"];
-      const isSpace = e.code === "Space";
+      const isSpace = e.code === "Space" || e.key === " ";
   
+      // prevent page scroll while playing
       if (gameRunning && (arrows.includes(e.key) || isSpace)) e.preventDefault();
   
       if (isSpace) {
-        if (!gameRunning) return initGame();
-        if (waitingContinue) return continueGame();
-        if (paused) return resumeGame();
+        // space = start / continue / resume depending on state
+        if (!gameRunning) { initGame(); return; }
+        if (waitingContinue) { continueGame(); return; }
+        if (paused) { resumeGame(); return; }
+        // if running & not paused, do nothing (or optionally pause)
         return;
       }
   
+      // arrows: only when game active & not waitingContinue
       if (!gameRunning || waitingContinue) return;
       if (e.key === "ArrowLeft" && direction !== "RIGHT") nextDirection = "LEFT";
       if (e.key === "ArrowUp" && direction !== "DOWN") nextDirection = "UP";
@@ -314,28 +391,56 @@
       if (e.key === "ArrowDown" && direction !== "UP") nextDirection = "DOWN";
     }
   
-    // === TOUCH CONTROL (MOBILE) ===
-    document.querySelectorAll(".control-btn").forEach((btn) => {
-      btn.addEventListener("touchstart", (ev) => {
-        ev.preventDefault();
-        if (waitingContinue) return continueGame();
-        const dir = btn.dataset.dir;
-        if (dir === "LEFT" && direction !== "RIGHT") nextDirection = "LEFT";
-        if (dir === "UP" && direction !== "DOWN") nextDirection = "UP";
-        if (dir === "RIGHT" && direction !== "LEFT") nextDirection = "RIGHT";
-        if (dir === "DOWN" && direction !== "UP") nextDirection = "DOWN";
+    // touch controls (mobile)
+    function setupTouchControls() {
+      const btns = document.querySelectorAll(".control-btn");
+      if (!btns) return;
+      btns.forEach(btn => {
+        btn.addEventListener("touchstart", ev => {
+          ev.preventDefault();
+          if (waitingContinue) { continueGame(); return; }
+          const dir = btn.dataset.dir;
+          if (dir === "LEFT" && direction !== "RIGHT") nextDirection = "LEFT";
+          if (dir === "UP" && direction !== "DOWN") nextDirection = "UP";
+          if (dir === "RIGHT" && direction !== "LEFT") nextDirection = "RIGHT";
+          if (dir === "DOWN" && direction !== "UP") nextDirection = "DOWN";
+        }, { passive: false });
+  
+        // also click fallback
+        btn.addEventListener("click", () => {
+          if (waitingContinue) { continueGame(); return; }
+          const dir = btn.dataset.dir;
+          if (dir === "LEFT" && direction !== "RIGHT") nextDirection = "LEFT";
+          if (dir === "UP" && direction !== "DOWN") nextDirection = "UP";
+          if (dir === "RIGHT" && direction !== "LEFT") nextDirection = "RIGHT";
+          if (dir === "DOWN" && direction !== "UP") nextDirection = "DOWN";
+        });
       });
+    }
+  
+    // --- attach event listeners safely ---
+    // start buttons (could be several e.g. header + overlay)
+    startBtnEls.forEach(btn => {
+      if (btn) btn.addEventListener("click", () => { initGame(); focusCanvas(); });
     });
   
-    // === EVENTS ===
-    startBtn.addEventListener("click", initGame);
-    restartBtn.addEventListener("click", initGame);
-    continueBtn.addEventListener("click", continueGame);
-    pauseBtn.addEventListener("click", pauseGame);
-    resumeBtn.addEventListener("click", resumeGame);
-    document.addEventListener("keydown", handleKeyDown, { passive: false });
+    // restart overlay(s)
+    restartBtnEls.forEach(btn => {
+      if (btn) btn.addEventListener("click", () => { initGame(); focusCanvas(); });
+    });
   
-    // === INIT ===
+    if (headerRestart) headerRestart.addEventListener("click", () => { initGame(); focusCanvas(); });
+  
+    if (pauseBtn) pauseBtn.addEventListener("click", pauseGame);
+    if (resumeBtn) resumeBtn.addEventListener("click", resumeGame);
+    if (continueBtn) continueBtn.addEventListener("click", () => { continueGame(); focusCanvas(); });
+  
+    document.addEventListener("keydown", handleKeyDown, { passive: false });
+    canvas.addEventListener("click", focusCanvas);
+  
+    setupTouchControls();
+  
+    // initial UI state
     showOverlay(overlay);
     toggleHeaderButtons();
   })();
