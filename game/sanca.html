@@ -6,84 +6,150 @@
   <title>Sanca Game</title>
   <link rel="icon" href="../icon/Sss.png" />
   <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
-    @keyframes fadeinout {
-      0% { opacity: 0; transform: translateY(-20px); }
-      10% { opacity: 1; transform: translateY(0); }
-      90% { opacity: 1; transform: translateY(0); }
-      100% { opacity: 0; transform: translateY(-20px); }
+    body {
+      background: radial-gradient(circle at center, #000 0%, #001100 100%);
+      color: #00ff99;
+      overflow-x: hidden;
+      font-family: 'Courier New', monospace;
     }
-    .animate-fadeinout {
-      animation: fadeinout 2s forwards;
+
+    @keyframes neonPulse {
+      0%, 100% { box-shadow: 0 0 20px #00ff9960, 0 0 40px #00ff6680; }
+      50% { box-shadow: 0 0 30px #00ffaa99, 0 0 60px #00ffccaa; }
+    }
+
+    #gameCanvas {
+      border: 2px solid #00ff99;
+      border-radius: 14px;
+      box-shadow: 0 0 25px #00ff8840, inset 0 0 15px #00ff8840;
+      background: radial-gradient(circle at center, #001100, #000);
+      animation: neonPulse 5s infinite;
+    }
+
+    button {
+      transition: all 0.25s ease;
+      box-shadow: 0 0 10px #00ff7790;
+    }
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px #00ffaa;
+    }
+
+    .logo-glow { filter: drop-shadow(0 0 6px #00ffaa); }
+    header { animation: neonPulse 6s infinite; }
+
+    .control-btn {
+      box-shadow: 0 0 10px #00ff77aa;
+      text-shadow: 0 0 6px #00ff99;
+    }
+
+    .celebration-animate {
+      animation: floatUp 1.8s ease-out;
+    }
+    @keyframes floatUp {
+      0% { opacity: 0; transform: translateY(20px) scale(0.9); }
+      50% { opacity: 1; transform: translateY(-5px) scale(1.05); }
+      100% { opacity: 0; transform: translateY(-30px) scale(1); }
+    }
+
+    main { margin-bottom: 7rem; }
+    @media (max-width: 768px) {
+      #gameCanvas { margin-top: 1rem; }
+      #mobileControls { bottom: 1.5rem; }
+    }
+
+    /* Overlay fix — cuma hidden/non-hidden */
+    #overlay, #celebration, #gameOverOverlay {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .hidden {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: scale(0.95);
+    }
+
+    .show {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      transform: scale(1);
     }
   </style>
 </head>
 
-<body class="min-h-screen flex flex-col items-center justify-start bg-[radial-gradient(circle_at_center,#020202,#000)] text-green-300 font-mono p-2">
+<body class="min-h-screen flex flex-col items-center justify-start text-green-300 p-3">
 
   <!-- HEADER -->
-  <header class="w-full flex justify-between items-center p-4 border border-green-500/25 bg-black/40 backdrop-blur-md rounded-xl mb-3 max-w-5xl shadow-[0_0_25px_rgba(0,255,100,0.15)]">
-    <div class="flex items-center gap-2">
-      <img src="../icon/Sss.png" alt="Sanca" class="w-8 h-8" />
-      <h1 class="text-2xl font-bold tracking-wider text-green-400">Sanca</h1>
+  <header class="w-full flex justify-between items-center p-4 border border-green-500/25 bg-black/40 backdrop-blur-md rounded-xl mb-4 max-w-5xl shadow-[0_0_25px_rgba(0,255,100,0.15)]">
+    <div class="flex items-center gap-3">
+      <img src="../icon/Sss.png" alt="Sanca" class="w-10 h-10 logo-glow" />
+      <h1 class="text-2xl md:text-3xl font-bold tracking-wider text-green-400 drop-shadow-[0_0_6px_#00ff88]">
+        SANCA GAME
+      </h1>
+    </div>
+    <div class="flex gap-2">
+      <button id="pauseBtn" class="px-3 py-1 bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg font-semibold hidden">
+        ⏸ Pause
+      </button>
+      <button id="resumeBtn" class="px-3 py-1 bg-blue-400 hover:bg-blue-500 text-black rounded-lg font-semibold hidden">
+        ▶ Resume
+      </button>
     </div>
     <a href="../index.html" class="text-green-300 hover:text-green-500 transition font-semibold">⬅ Kembali</a>
   </header>
 
-  <!-- TOAST CONTAINER -->
-  <div id="toastContainer" class="fixed top-24 right-4 flex flex-col gap-2 z-50"></div>
+  <!-- GAME AREA -->
+  <main class="flex flex-col items-center justify-center grow w-full">
+    <div class="relative max-w-[500px] w-full mt-2">
+      <canvas id="gameCanvas" class="w-full aspect-square touch-none rounded-xl"></canvas>
 
-  <!-- SCOREBOARD -->
-  <div id="scoreboard" class="fixed p-3 bg-black/70 rounded-lg text-green-400 font-mono z-50 shadow-lg flex flex-col gap-1 w-40 top-16 right-4 md:top-4 md:right-4">
-    <div class="flex justify-between">
-      <span class="font-bold">Skor:</span>
-      <span id="score" class="font-bold">0</span>
-    </div>
-    <div class="flex justify-between">
-      <span class="font-semibold text-sm">High Score:</span>
-      <span id="highScore" class="font-semibold text-sm">0</span>
-    </div>
-  </div>
-
-  <!-- AREA GAME -->
-  <main class="flex flex-col items-center justify-center w-full grow">  
-    <div class="flex flex-col items-center justify-center w-full max-w-[500px]">
-      <div id="game-container" class="relative w-full">
-        <canvas id="gameCanvas" class="border-2 border-green-500 rounded-lg touch-none w-full"></canvas>
-
-        <!-- Overlay Instruksi -->
-        <div id="overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-center text-green-400 rounded-2xl">
-          <div id="instruction" class="px-6 text-sm leading-relaxed">
-            <p class="mb-2">🎮 <b>Cara Main:</b></p>
-            <p>- Gunakan tombol panah di keyboard untuk menggerakkan ular</p>
-            <p>- Di ponsel, gunakan joystick di bawah layar</p>
-            <p class="mt-4 text-green-500">Tekan tombol di bawah untuk mulai!</p>
-          </div>
-          <button id="startBtn" class="mt-6 px-6 py-2 rounded-lg bg-green-600 text-black font-bold hover:bg-green-500 transition">MULAI GAME</button>
-          <div id="countdown" class="hidden text-5xl mt-4 font-extrabold text-green-500"></div>
+      <!-- OVERLAY MULAI -->
+      <div id="overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 rounded-2xl text-center text-green-400 backdrop-blur-md show">
+        <div class="px-6 text-sm leading-relaxed max-w-[300px]">
+          <p class="mb-2 text-lg font-bold">🎮 Cara Main:</p>
+          <p>- Gunakan tombol panah di keyboard</p>
+          <p>- Di HP, pakai tombol arah di bawah</p>
+          <p class="mt-4 text-green-500">Tekan tombol di bawah untuk mulai!</p>
         </div>
+        <button id="startBtn" class="mt-6 px-6 py-2 bg-green-600 text-black font-bold rounded-lg hover:bg-green-500">
+          MULAI GAME
+        </button>
+      </div>
 
-        <!-- Game Over Overlay -->
-        <div id="gameOverOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-center text-green-400 rounded-2xl hidden">
-          <h2 id="gameOverText" class="text-3xl font-bold mb-4">💀 Game Over!</h2>
-          <p id="finalScore" class="mb-4">Skor kamu: 0 | High Score: 0</p>
-          <button id="restartBtn" class="px-6 py-2 rounded-lg bg-green-600 text-black font-bold hover:bg-green-500 transition flex items-center gap-2">
-            🔄 Mulai Lagi
-          </button>
-        </div>
+      <!-- CELEBRATION -->
+      <div id="celebration" class="absolute inset-0 hidden flex-col items-center justify-center text-3xl font-bold text-green-400 space-y-4 bg-black/60 backdrop-blur-sm rounded-2xl">
+        <div id="celebrationText" class="celebration-animate">+10 🎉</div>
+        <button id="continueBtn" class="hidden px-4 py-2 bg-green-600 text-black rounded-lg font-bold hover:bg-green-500 transition shadow-[0_0_10px_#00ff77]">
+          Lanjutkan ▶
+        </button>
+      </div>
 
-        <!-- JOYSTICK LINGKARAN -->
-        <div id="joystickContainer" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-20 h-10 rounded-full bg-black/20 flex justify-center items-center z-50">
-          <div id="joystickInner" class="w-10 h-10 rounded-full bg-black/30 flex justify-center items-center cursor-pointer" style="touch-action:none;"></div>
-        </div>
-
+      <!-- GAME OVER -->
+      <div id="gameOverOverlay" class="absolute inset-0 hidden flex flex-col items-center justify-center bg-black/85 text-center text-green-400 rounded-2xl backdrop-blur-md">
+        <h2 class="text-3xl font-bold mb-4 drop-shadow-[0_0_8px_#00ff77]">💀 GAME OVER</h2>
+        <p id="finalScore" class="mb-4 text-lg">Skor kamu: 0</p>
+        <button id="restartBtn" class="px-6 py-2 bg-green-600 text-black font-bold rounded-lg hover:bg-green-500 shadow-[0_0_10px_#00ff77]">
+          🔄 MULAI LAGI
+        </button>
       </div>
     </div>
   </main>
 
-  <footer class="py-3 text-center text-xs text-green-700/60">© 2025 Sanca Project</footer>
+  <!-- MOBILE CONTROL -->
+  <div id="mobileControls" class="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 md:hidden opacity-95">
+    <button data-dir="UP" class="control-btn bg-green-700 text-black px-6 py-5 rounded-full font-bold">▲</button>
+    <div class="flex gap-8">
+      <button data-dir="LEFT" class="control-btn bg-green-700 text-black px-6 py-5 rounded-full font-bold">◀</button>
+      <button data-dir="DOWN" class="control-btn bg-green-700 text-black px-6 py-5 rounded-full font-bold">▼</button>
+      <button data-dir="RIGHT" class="control-btn bg-green-700 text-black px-6 py-5 rounded-full font-bold">▶</button>
+    </div>
+  </div>
 
-  <!-- Game JS -->
+  <footer class="py-3 text-center text-xs text-green-700/60">© 2025 SANCA PROJECT</footer>
+
+  <!-- === GAME SCRIPT === -->
   <script src="../src/game/game.js"></script>
 </body>
 </html>
